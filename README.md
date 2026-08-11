@@ -2,23 +2,28 @@
 
 AI-assisted affiliate opportunity research, forecasting, campaign planning, and performance learning.
 
-## Current MVP (V0.3)
+## Current MVP (V0.4)
 
-The agent now supports three evidence sources:
+The agent now combines five evidence layers:
 
-1. **CJ live Link Search** for joined advertisers, commissions, tracking links, and network EPC;
-2. **Impact live Partner API** for joined programs and available ads/tracking links;
-3. **Direct affiliate page scanner** for public program pages supplied by URL, extracting commission %, recurring-language, cookie/attribution window, network hints, and application links.
+1. **Verified AI affiliate catalog** with official-program terms checked on a specific date, so the opportunity engine is useful even before private network credentials are configured.
+2. **CJ live Link Search** for joined advertisers, commissions, tracking links, and network EPC.
+3. **Impact live Partner API** for joined programs, tracking links, ads, and public payout/attribution terms.
+4. **Direct affiliate page scanner** for user-supplied public program pages, extracting commission %, recurring language, cookie/attribution window, network hints, and application links.
+5. **YouTube market research** for a lightweight interest/competition signal based on public video search and view statistics.
 
-The `/api/v1/opportunities/top` endpoint combines those sources and ranks them by **commercial readiness**. This score is deliberately not presented as a profit prediction: market demand, trend, competition, real CTR, conversion rate, and actual EPC still need to be measured or connected.
+`POST /api/v1/opportunities/top` deduplicates those sources, calculates a commercial-readiness score, optionally adds a small YouTube market adjustment, and returns a final opportunity score with explicit evidence and confidence.
+
+The scores are **prioritization heuristics, not profit forecasts**. Real earnings require approved affiliate relationships, valid tracking links, qualified traffic, conversions, and compliance with each program's terms.
 
 ## Safety and data rules
 
 - API tokens stay in environment variables and are never committed.
 - The direct scanner fetches only user-supplied public HTTP(S) pages, blocks obvious local/private targets, limits redirects, and caps page size.
-- The system does not automate advertiser approval, impersonation, spam, or policy circumvention.
-- Publishing and affiliate-program participation must follow each network/brand/platform's terms.
+- Missing commission, EPC, cookie, or market fields are not invented.
 - Historical EPC is evidence, not a guarantee of future earnings.
+- The system does not automate advertiser approval, impersonation, spam, or policy circumvention.
+- Publishing and affiliate-program participation must follow each network, brand, and platform's rules.
 
 ## Backend
 
@@ -33,12 +38,12 @@ uvicorn app.main:app --reload --port 8000 --env-file ../.env
 
 API docs: `http://localhost:8000/docs`
 
-Run tests:
+Run validation:
 
 ```bash
 cd backend
-pytest
 ruff check .
+pytest
 ```
 
 ## Frontend
@@ -49,8 +54,7 @@ npm install
 npm run dev
 ```
 
-Default Vite URL: `http://localhost:5173`
-
+Default Vite URL: `http://localhost:5173`.
 Set `VITE_API_BASE_URL` if the backend is not running at `http://localhost:8000`.
 
 ## Credentials
@@ -62,9 +66,13 @@ CJ_API_TOKEN=
 CJ_WEBSITE_ID=
 IMPACT_ACCOUNT_SID=
 IMPACT_AUTH_TOKEN=
+YOUTUBE_API_KEY=
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
 Do not commit `.env`.
+
+The verified catalog works without these credentials. CJ, Impact, and YouTube become live enrichment sources when configured.
 
 ## API endpoints
 
@@ -74,7 +82,10 @@ Do not commit `.env`.
 - `GET /api/v1/cj/links?keywords=vps&advertiser_ids=joined`
 - `GET /api/v1/connectors/impact/status`
 - `GET /api/v1/impact/programs`
+- `GET /api/v1/impact/programs/{campaign_id}/public-terms`
 - `GET /api/v1/impact/ads?campaign_id=...&ad_type=TEXT_LINK`
+- `GET /api/v1/connectors/youtube/status`
+- `GET /api/v1/youtube/market?query=AI%20voice`
 - `POST /api/v1/direct/scan`
 - `POST /api/v1/opportunities/top`
 
@@ -83,14 +94,18 @@ Example top-opportunity request:
 ```json
 {
   "keywords": "AI software",
-  "direct_urls": [
-    "https://example.com/affiliate-program"
-  ],
+  "direct_urls": [],
   "include_cj": true,
   "include_impact": true,
+  "include_verified_catalog": true,
+  "enrich_impact_terms": true,
+  "include_youtube": true,
+  "youtube_probe_count": 3,
   "limit": 10
 }
 ```
+
+Without network credentials, a query such as `AI voice`, `vibe coding`, `AI agents`, or `AI visibility` can still return matching verified programs. Configure network/API credentials to add live account-specific data.
 
 ### Decision engine
 
@@ -98,24 +113,38 @@ Example top-opportunity request:
 - `POST /api/v1/forecast`
 - `POST /api/v1/campaign`
 
-## Current ranking model
+## Ranking model
 
-The automatic top-opportunity list currently ranks **commercial readiness** using the evidence actually available from the source:
+### Commercial readiness
 
-- commission percentage when present;
-- CJ network EPC when present;
-- cookie/attribution window when present;
-- recurring commission language;
-- tracking/application-link readiness;
-- source quality and data completeness.
+The base score uses evidence available for the offer:
 
-Missing fields are not invented. The next ranking upgrade is to add search demand, trend, competition, and then the user's real click/conversion/revenue data.
+- commission percentage;
+- fixed payout when available;
+- CJ historical EPC when available;
+- cookie/attribution window;
+- recurring commission terms;
+- live tracking/application-link readiness;
+- source quality and completeness.
+
+### Market adjustment
+
+If YouTube is configured, the engine samples public videos for a small number of top candidates and calculates:
+
+- interest signal from median views and recent activity;
+- competition signal from high-view and established videos.
+
+Only a modest adjustment is applied so social popularity cannot overpower actual monetization evidence.
+
+## Verified seed catalog
+
+V0.4 includes a small reviewed seed catalog for current AI-related programs such as Semrush, Lovable, Hostinger Horizons, ElevenLabs, and Sintra AI. Each record carries a verification date and caveats. These records should be refreshed when program terms change; never assume a stored commission remains valid forever.
 
 ## Next roadmap
 
-1. Google Ads keyword-demand connector.
-2. Google Trends connector when API access is available, with a manual/public fallback until then.
-3. YouTube competition research.
-4. SQLite/Postgres storage for offers, links, clicks, conversions, and commissions.
-5. Real EPC learning loop based on the user's own results.
-6. Content-campaign generator tied to the top ranked opportunity.
+1. Google Ads keyword-demand and buyer-intent connector.
+2. Google Trends integration when API access is available, with a fallback research workflow until then.
+3. Persistent SQLite/Postgres storage for offers, tracking links, clicks, conversions, and commissions.
+4. Campaign workspace that turns a selected opportunity into review/comparison/tutorial briefs.
+5. Real EPC and conversion learning based on the user's own results.
+6. Search Console/GA4 ingestion to connect content impressions → clicks → affiliate conversions → revenue.

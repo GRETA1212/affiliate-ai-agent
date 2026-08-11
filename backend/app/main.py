@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.connectors import cj, impact
+from app.connectors import cj, impact, youtube
 from app.connectors.direct_program import (
     DirectProgramScan,
     DirectProgramScanError,
@@ -25,7 +25,7 @@ from app.services.opportunity_aggregator import (
 )
 from app.services.opportunity_scorer import score_opportunity
 
-app = FastAPI(title="Affiliate AI Agent", version="0.3.0")
+app = FastAPI(title="Affiliate AI Agent", version="0.4.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -53,6 +53,16 @@ def get_cj_status() -> dict[str, str | bool]:
 @app.get("/api/v1/connectors/impact/status")
 def get_impact_status() -> dict[str, str | bool]:
     connector = impact.status()
+    return {
+        "name": connector.name,
+        "configured": connector.configured,
+        "note": connector.note,
+    }
+
+
+@app.get("/api/v1/connectors/youtube/status")
+def get_youtube_status() -> dict[str, str | bool]:
+    connector = youtube.status()
     return {
         "name": connector.name,
         "configured": connector.configured,
@@ -104,6 +114,19 @@ def impact_programs(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@app.get(
+    "/api/v1/impact/programs/{campaign_id}/public-terms",
+    response_model=impact.ImpactPublicTerms,
+)
+def impact_public_terms(campaign_id: str) -> impact.ImpactPublicTerms:
+    try:
+        return impact.get_public_terms(campaign_id)
+    except impact.ImpactConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except impact.ImpactAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @app.get("/api/v1/impact/ads", response_model=impact.ImpactAdListResponse)
 def impact_ads(
     campaign_id: str | None = Query(default=None, max_length=100),
@@ -121,6 +144,28 @@ def impact_ads(
     except impact.ImpactConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except impact.ImpactAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/youtube/market", response_model=youtube.YouTubeMarketSignal)
+def youtube_market(
+    query: str = Query(min_length=2, max_length=200),
+    max_results: int = Query(default=15, ge=5, le=25),
+    region_code: str | None = Query(default=None, min_length=2, max_length=2),
+    relevance_language: str | None = Query(default=None, min_length=2, max_length=10),
+) -> youtube.YouTubeMarketSignal:
+    try:
+        return youtube.research_market(
+            youtube.YouTubeMarketQuery(
+                query=query,
+                max_results=max_results,
+                region_code=region_code,
+                relevance_language=relevance_language,
+            )
+        )
+    except youtube.YouTubeConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except youtube.YouTubeAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 

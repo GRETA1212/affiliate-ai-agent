@@ -33,8 +33,11 @@ button:disabled { opacity: .55; cursor: progress; }
 .score-block small { color: #6b7280; text-transform: uppercase; letter-spacing: .08em; }
 .metrics { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .metrics span { background: #f3f4f6; border-radius: 999px; padding: 7px 10px; font-size: 12px; font-weight: 700; }
+.commission-text { margin: 4px 0 8px; color: #374151; font-size: 14px; font-weight: 650; }
 ul { margin: 8px 0 0; padding-left: 18px; color: #4b5563; }
 li { margin: 4px 0; }
+.links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.links a { color: #111827; font-weight: 800; font-size: 13px; }
 .muted { color: #6b7280; }
 .fine-print { color: #6b7280; font-size: 12px; line-height: 1.5; margin-bottom: 0; }
 .secondary-panel { margin-top: 16px; }

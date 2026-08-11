@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from app.connectors.base import ConnectorStatus
 
 IMPACT_API_BASE_URL = "https://api.impact.com"
+IMPACT_API_VERSION = "15"
 
 
 class ImpactConfigurationError(RuntimeError):
@@ -33,6 +34,8 @@ class ImpactProgram(BaseModel):
     campaign_url: str | None
     campaign_description: str | None
     contract_status: str | None
+    contract_uri: str | None
+    public_terms_uri: str | None
     tracking_link: str | None
     allows_deeplinking: bool
     shipping_regions: list[str] = Field(default_factory=list)
@@ -64,6 +67,30 @@ class ImpactAdListResponse(BaseModel):
     page_size: int
     total: int | None
     ads: list[ImpactAd]
+
+
+class ImpactPayoutTerm(BaseModel):
+    tracker_name: str | None
+    tracker_type: str | None
+    payout_percentage: float | None
+    payout_amount: float | None
+    payout_currency: str | None
+    referral_period: int | None
+    referral_period_unit: str | None
+    payout_amount_lower_limit: float | None
+    payout_amount_upper_limit: float | None
+    payout_percentage_lower_limit: float | None
+    payout_percentage_upper_limit: float | None
+
+
+class ImpactPublicTerms(BaseModel):
+    id: str | None
+    name: str | None
+    campaign_id: str | None
+    campaign_name: str | None
+    payout_terms: list[ImpactPayoutTerm] = Field(default_factory=list)
+    pdf_uri: str | None
+    uri: str | None
 
 
 def status() -> ConnectorStatus:
@@ -148,6 +175,25 @@ def list_ads(
     )
 
 
+def get_public_terms(
+    campaign_id: str,
+    *,
+    config: ImpactConfig | None = None,
+    client: httpx.Client | None = None,
+) -> ImpactPublicTerms:
+    resolved = config or config_from_env()
+    payload = _get_json(
+        (
+            f"{resolved.api_base_url}/Mediapartners/{resolved.account_sid}"
+            f"/Campaigns/{campaign_id}/PublicTerms"
+        ),
+        params={},
+        config=resolved,
+        client=client,
+    )
+    return _parse_public_terms(payload)
+
+
 def _get_json(
     url: str,
     *,
@@ -163,7 +209,7 @@ def _get_json(
                 url,
                 params=params,
                 auth=httpx.BasicAuth(config.account_sid, config.auth_token),
-                headers={"Accept": "application/json"},
+                headers={"Accept": "application/json", "IR-Version": IMPACT_API_VERSION},
             )
         except httpx.RequestError as exc:
             raise ImpactAPIError("Could not reach the Impact Partner API.") from exc
@@ -173,6 +219,8 @@ def _get_json(
 
     if response.status_code in {401, 403}:
         raise ImpactAPIError("Impact rejected the credentials or API access is unavailable.")
+    if response.status_code == 404:
+        raise ImpactAPIError("Impact resource was not found or is not available to this account.")
     if response.status_code == 429:
         raise ImpactAPIError("Impact rate limit reached. Wait before trying again.")
     if response.status_code >= 400:
@@ -197,6 +245,8 @@ def _parse_program(item: dict[str, object]) -> ImpactProgram:
         campaign_url=_string(item.get("CampaignUrl")),
         campaign_description=_string(item.get("CampaignDescription")),
         contract_status=_string(item.get("ContractStatus")),
+        contract_uri=_string(item.get("ContractUri")),
+        public_terms_uri=_string(item.get("PublicTermsUri")),
         tracking_link=_string(item.get("TrackingLink")),
         allows_deeplinking=_bool(item.get("AllowsDeeplinking")),
         shipping_regions=_string_list(item.get("ShippingRegions")),
@@ -219,6 +269,37 @@ def _parse_ad(item: dict[str, object]) -> ImpactAd:
     )
 
 
+def _parse_public_terms(item: dict[str, object]) -> ImpactPublicTerms:
+    payout_terms_raw = _as_list_with_keys(item.get("PayoutTermsList"), ("PayoutTerm", "PayoutTerms"))
+    return ImpactPublicTerms(
+        id=_string(item.get("Id")),
+        name=_string(item.get("Name")),
+        campaign_id=_string(item.get("CampaignId")),
+        campaign_name=_string(item.get("CampaignName")),
+        payout_terms=[
+            _parse_payout_term(term) for term in payout_terms_raw if isinstance(term, dict)
+        ],
+        pdf_uri=_string(item.get("PdfUri")),
+        uri=_string(item.get("Uri")),
+    )
+
+
+def _parse_payout_term(item: dict[str, object]) -> ImpactPayoutTerm:
+    return ImpactPayoutTerm(
+        tracker_name=_string(item.get("TrackerName")),
+        tracker_type=_string(item.get("TrackerType")),
+        payout_percentage=_optional_float(item.get("PayoutPercentage")),
+        payout_amount=_optional_float(item.get("PayoutAmount")),
+        payout_currency=_string(item.get("PayoutCurrency")),
+        referral_period=_optional_int(item.get("ReferralPeriod")),
+        referral_period_unit=_string(item.get("ReferralPeriodUnit")),
+        payout_amount_lower_limit=_optional_float(item.get("PayoutAmountLowerLimit")),
+        payout_amount_upper_limit=_optional_float(item.get("PayoutAmountUpperLimit")),
+        payout_percentage_lower_limit=_optional_float(item.get("PayoutPercentageLowerLimit")),
+        payout_percentage_upper_limit=_optional_float(item.get("PayoutPercentageUpperLimit")),
+    )
+
+
 def _as_list(value: object) -> list[object]:
     if isinstance(value, list):
         return value
@@ -229,6 +310,21 @@ def _as_list(value: object) -> list[object]:
                 return nested
             if isinstance(nested, dict):
                 return [nested]
+    return []
+
+
+def _as_list_with_keys(value: object, keys: tuple[str, ...]) -> list[object]:
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        for key in keys:
+            nested = value.get(key)
+            if isinstance(nested, list):
+                return nested
+            if isinstance(nested, dict):
+                return [nested]
+        if any(key in value for key in ("TrackerName", "TrackerType")):
+            return [value]
     return []
 
 
@@ -260,8 +356,19 @@ def _nested_string_list(value: object, key: str) -> list[str]:
 
 
 def _optional_int(value: object) -> int | None:
+    if value is None or str(value).strip() == "":
+        return None
     try:
-        return int(str(value)) if value is not None else None
+        return int(float(str(value)))
+    except ValueError:
+        return None
+
+
+def _optional_float(value: object) -> float | None:
+    if value is None or str(value).strip() == "":
+        return None
+    try:
+        return float(str(value).replace(",", ""))
     except ValueError:
         return None
 

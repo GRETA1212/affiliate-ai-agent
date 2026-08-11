@@ -12,12 +12,19 @@ type RankedOpportunity = {
   advertiser: string | null;
   program_url: string | null;
   tracking_url: string | null;
+  network_hint: string | null;
   commission_text: string | null;
   commission_percent: number | null;
+  fixed_payout_amount: number | null;
+  fixed_payout_currency: string | null;
   epc_per_click: number | null;
   cookie_days: number | null;
   recurring: boolean;
+  verified_at: string | null;
   commercial_readiness_score: number;
+  opportunity_score: number;
+  market_interest_score: number | null;
+  market_competition_score: number | null;
   confidence: number;
   reasons: string[];
 };
@@ -83,6 +90,10 @@ export default function App() {
           direct_urls: urls,
           include_cj: true,
           include_impact: true,
+          include_verified_catalog: true,
+          enrich_impact_terms: true,
+          include_youtube: true,
+          youtube_probe_count: 3,
           limit: 10,
         }),
       });
@@ -101,21 +112,21 @@ export default function App() {
   return (
     <main>
       <header>
-        <p className="eyebrow">Affiliate AI Agent · V0.3</p>
-        <h1>Find the strongest offers before creating content.</h1>
+        <p className="eyebrow">Affiliate AI Agent · V0.4</p>
+        <h1>Find offers worth testing before you spend time creating content.</h1>
         <p className="lede">
-          Search live CJ and Impact relationships, inspect public direct affiliate pages, then rank
-          offers by commercial readiness and evidence quality.
+          Start with a verified AI-affiliate catalog, then enrich it with live CJ, Impact public
+          terms, direct program pages and YouTube market signals when your credentials are configured.
         </p>
       </header>
 
       <section className="panel opportunity-panel">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Live research</p>
+            <p className="eyebrow">Opportunity engine</p>
             <h2>Top opportunities</h2>
           </div>
-          <span className="status-dot">CJ + Impact + Direct</span>
+          <span className="status-dot">Verified + CJ + Impact + YouTube</span>
         </div>
         <form onSubmit={findOpportunities} className="research-form">
           <label>
@@ -136,6 +147,8 @@ export default function App() {
           </button>
         </form>
 
+        {error && <p className="error">{error}</p>}
+
         {top && (
           <div className="opportunity-results">
             {top.warnings.length > 0 && (
@@ -144,7 +157,7 @@ export default function App() {
               </div>
             )}
             {top.opportunities.length === 0 ? (
-              <p className="muted">No ranked opportunities yet. Configure a network or add direct URLs.</p>
+              <p className="muted">No ranked opportunities matched this market.</p>
             ) : (
               top.opportunities.map((item, index) => (
                 <article className="opportunity-card" key={`${item.source}-${item.name}-${index}`}>
@@ -157,20 +170,36 @@ export default function App() {
                         {item.advertiser && <p className="muted">{item.advertiser}</p>}
                       </div>
                       <div className="score-block">
-                        <strong>{item.commercial_readiness_score.toFixed(0)}</strong>
-                        <small>readiness</small>
+                        <strong>{item.opportunity_score.toFixed(0)}</strong>
+                        <small>opportunity</small>
                       </div>
                     </div>
                     <div className="metrics">
+                      <span>{item.commercial_readiness_score.toFixed(0)} commercial</span>
                       {item.commission_percent !== null && <span>{item.commission_percent}% commission</span>}
+                      {item.fixed_payout_amount !== null && (
+                        <span>
+                          {item.fixed_payout_currency ? `${item.fixed_payout_currency} ` : ""}
+                          {item.fixed_payout_amount} fixed payout
+                        </span>
+                      )}
                       {item.epc_per_click !== null && <span>EPC ≈ {item.epc_per_click.toFixed(3)}/click</span>}
-                      {item.cookie_days !== null && <span>{item.cookie_days}-day cookie</span>}
+                      {item.cookie_days !== null && <span>{item.cookie_days}-day attribution</span>}
                       {item.recurring && <span>recurring</span>}
+                      {item.market_interest_score !== null && <span>YouTube interest {item.market_interest_score.toFixed(0)}/100</span>}
+                      {item.market_competition_score !== null && <span>YouTube competition {item.market_competition_score.toFixed(0)}/100</span>}
+                      {item.network_hint && <span>{item.network_hint}</span>}
+                      {item.verified_at && <span>verified {item.verified_at}</span>}
                       <span>{Math.round(item.confidence * 100)}% data confidence</span>
                     </div>
+                    {item.commission_text && <p className="commission-text">{item.commission_text}</p>}
                     <ul>
-                      {item.reasons.slice(0, 4).map((reason) => <li key={reason}>{reason}</li>)}
+                      {item.reasons.slice(0, 5).map((reason) => <li key={reason}>{reason}</li>)}
                     </ul>
+                    <div className="links">
+                      {item.tracking_url && <a href={item.tracking_url}>Tracking link</a>}
+                      {item.program_url && <a href={item.program_url}>Program page</a>}
+                    </div>
                   </div>
                 </article>
               ))
@@ -189,7 +218,6 @@ export default function App() {
           </label>
           <button type="submit">Analyze sample signals</button>
         </form>
-        {error && <p className="error">{error}</p>}
         {result && (
           <div className="result">
             <span>{result.product_name}</span>
@@ -200,9 +228,9 @@ export default function App() {
       </section>
 
       <section className="grid">
-        <article><h3>Research</h3><p>Live network relationships and direct affiliate terms.</p></article>
-        <article><h3>Rank</h3><p>Commercial readiness with explicit confidence and evidence.</p></article>
-        <article><h3>Learn</h3><p>Next: demand, trends, clicks, conversions and real EPC feedback.</p></article>
+        <article><h3>Research</h3><p>Verified programs plus live network and direct-source evidence.</p></article>
+        <article><h3>Rank</h3><p>Commercial readiness, confidence and optional YouTube market signals.</p></article>
+        <article><h3>Learn</h3><p>Next: clicks, conversions, real EPC and campaign feedback loops.</p></article>
       </section>
     </main>
   );
