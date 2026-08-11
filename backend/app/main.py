@@ -1,28 +1,12 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.connectors.cj import (
-    CJAPIError,
-    CJConfigurationError,
-    CJLinkSearchQuery,
-    CJLinkSearchResponse,
-)
-from app.connectors.cj import search_links as search_cj_links
-from app.connectors.cj import status as cj_status
+from app.connectors import cj, impact
 from app.connectors.direct_program import (
     DirectProgramScan,
     DirectProgramScanError,
     DirectProgramScanRequest,
     scan_program,
-)
-from app.connectors.impact import (
-    ImpactAdListResponse,
-    ImpactAPIError,
-    ImpactConfigurationError,
-    ImpactProgramListResponse,
-    list_ads as list_impact_ads,
-    list_programs as list_impact_programs,
-    status as impact_status,
 )
 from app.models import (
     CampaignPlan,
@@ -58,7 +42,7 @@ def health() -> dict[str, str]:
 
 @app.get("/api/v1/connectors/cj/status")
 def get_cj_status() -> dict[str, str | bool]:
-    connector = cj_status()
+    connector = cj.status()
     return {
         "name": connector.name,
         "configured": connector.configured,
@@ -68,7 +52,7 @@ def get_cj_status() -> dict[str, str | bool]:
 
 @app.get("/api/v1/connectors/impact/status")
 def get_impact_status() -> dict[str, str | bool]:
-    connector = impact_status()
+    connector = impact.status()
     return {
         "name": connector.name,
         "configured": connector.configured,
@@ -76,7 +60,7 @@ def get_impact_status() -> dict[str, str | bool]:
     }
 
 
-@app.get("/api/v1/cj/links", response_model=CJLinkSearchResponse)
+@app.get("/api/v1/cj/links", response_model=cj.CJLinkSearchResponse)
 def cj_links(
     keywords: str | None = Query(default=None, max_length=200),
     advertiser_ids: str = Query(default="joined", min_length=1, max_length=500),
@@ -87,8 +71,8 @@ def cj_links(
     allow_deep_linking: bool | None = Query(default=None),
     page_number: int = Query(default=1, ge=1),
     records_per_page: int = Query(default=25, ge=1, le=100),
-) -> CJLinkSearchResponse:
-    query = CJLinkSearchQuery(
+) -> cj.CJLinkSearchResponse:
+    query = cj.CJLinkSearchQuery(
         keywords=keywords,
         advertiser_ids=advertiser_ids,
         category=category,
@@ -100,43 +84,43 @@ def cj_links(
         records_per_page=records_per_page,
     )
     try:
-        return search_cj_links(query)
-    except CJConfigurationError as exc:
+        return cj.search_links(query)
+    except cj.CJConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except CJAPIError as exc:
+    except cj.CJAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@app.get("/api/v1/impact/programs", response_model=ImpactProgramListResponse)
+@app.get("/api/v1/impact/programs", response_model=impact.ImpactProgramListResponse)
 def impact_programs(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=100, ge=1, le=200),
-) -> ImpactProgramListResponse:
+) -> impact.ImpactProgramListResponse:
     try:
-        return list_impact_programs(page=page, page_size=page_size)
-    except ImpactConfigurationError as exc:
+        return impact.list_programs(page=page, page_size=page_size)
+    except impact.ImpactConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except ImpactAPIError as exc:
+    except impact.ImpactAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@app.get("/api/v1/impact/ads", response_model=ImpactAdListResponse)
+@app.get("/api/v1/impact/ads", response_model=impact.ImpactAdListResponse)
 def impact_ads(
     campaign_id: str | None = Query(default=None, max_length=100),
     ad_type: str | None = Query(default=None, max_length=50),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=100, ge=1, le=200),
-) -> ImpactAdListResponse:
+) -> impact.ImpactAdListResponse:
     try:
-        return list_impact_ads(
+        return impact.list_ads(
             campaign_id=campaign_id,
             ad_type=ad_type,
             page=page,
             page_size=page_size,
         )
-    except ImpactConfigurationError as exc:
+    except impact.ImpactConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except ImpactAPIError as exc:
+    except impact.ImpactAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
