@@ -86,6 +86,8 @@ def test_auth_failure_becomes_safe_connector_error() -> None:
         return httpx.Response(401, request=request)
 
     config = CJConfig(token="bad-secret", website_id="24680")
-    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
-        with pytest.raises(CJAPIError, match="rejected the credentials"):
-            search_links(CJLinkSearchQuery(), config=config, client=client)
+    with (
+        httpx.Client(transport=httpx.MockTransport(handler)) as client,
+        pytest.raises(CJAPIError, match="rejected the credentials"),
+    ):
+        search_links(CJLinkSearchQuery(), config=config, client=client)
