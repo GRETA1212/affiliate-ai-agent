@@ -1,6 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.connectors.cj import (
+    CJAPIError,
+    CJConfigurationError,
+    CJLinkSearchQuery,
+    CJLinkSearchResponse,
+    search_links as search_cj_links,
+    status as cj_status,
+)
 from app.models import (
     CampaignPlan,
     CampaignRequest,
@@ -13,7 +21,7 @@ from app.services.content_agent import build_campaign
 from app.services.forecast import forecast_revenue
 from app.services.opportunity_scorer import score_opportunity
 
-app = FastAPI(title="Affiliate AI Agent", version="0.1.0")
+app = FastAPI(title="Affiliate AI Agent", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -26,6 +34,47 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/v1/connectors/cj/status")
+def get_cj_status() -> dict[str, str | bool]:
+    connector = cj_status()
+    return {
+        "name": connector.name,
+        "configured": connector.configured,
+        "note": connector.note,
+    }
+
+
+@app.get("/api/v1/cj/links", response_model=CJLinkSearchResponse)
+def cj_links(
+    keywords: str | None = Query(default=None, max_length=200),
+    advertiser_ids: str = Query(default="joined", min_length=1, max_length=500),
+    category: str | None = Query(default=None, max_length=200),
+    link_type: str | None = Query(default=None, max_length=100),
+    promotion_type: str | None = Query(default=None, max_length=100),
+    targeted_country: str | None = Query(default=None, min_length=2, max_length=2),
+    allow_deep_linking: bool | None = Query(default=None),
+    page_number: int = Query(default=1, ge=1),
+    records_per_page: int = Query(default=25, ge=1, le=100),
+) -> CJLinkSearchResponse:
+    query = CJLinkSearchQuery(
+        keywords=keywords,
+        advertiser_ids=advertiser_ids,
+        category=category,
+        link_type=link_type,
+        promotion_type=promotion_type,
+        targeted_country=targeted_country,
+        allow_deep_linking=allow_deep_linking,
+        page_number=page_number,
+        records_per_page=records_per_page,
+    )
+    try:
+        return search_cj_links(query)
+    except CJConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except CJAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.post("/api/v1/score", response_model=OpportunityResult)
