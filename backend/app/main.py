@@ -6,9 +6,9 @@ from app.connectors.cj import (
     CJConfigurationError,
     CJLinkSearchQuery,
     CJLinkSearchResponse,
-    search_links as search_cj_links,
-    status as cj_status,
 )
+from app.connectors.cj import search_links as search_cj_links
+from app.connectors.cj import status as cj_status
 from app.models import (
     CampaignPlan,
     CampaignRequest,
