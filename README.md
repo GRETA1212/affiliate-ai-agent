@@ -1,29 +1,84 @@
 # Affiliate AI Agent
 
-AI-assisted affiliate opportunity research, forecasting, campaign planning, and performance learning.
+AI-assisted affiliate opportunity research, campaign tracking, revenue measurement, forecasting, and performance learning.
 
-## Current MVP (V0.4)
+## Current MVP (V0.5)
 
-The agent now combines five evidence layers:
+The agent now covers the first complete measurable affiliate loop:
 
-1. **Verified AI affiliate catalog** with official-program terms checked on a specific date, so the opportunity engine is useful even before private network credentials are configured.
-2. **CJ live Link Search** for joined advertisers, commissions, tracking links, and network EPC.
-3. **Impact live Partner API** for joined programs, tracking links, ads, and public payout/attribution terms.
-4. **Direct affiliate page scanner** for user-supplied public program pages, extracting commission %, recurring language, cookie/attribution window, network hints, and application links.
-5. **YouTube market research** for a lightweight interest/competition signal based on public video search and view statistics.
+1. **Find opportunities** from a verified AI-affiliate catalog, CJ, Impact, direct affiliate pages, and YouTube market signals.
+2. **Create a persistent campaign** with your own approved affiliate tracking URL.
+3. **Publish the generated `/go/{slug}` tracking link** instead of the raw network URL.
+4. **Record human/bot-aware clicks** before redirecting to the affiliate network.
+5. **Record network conversions and commissions** in SQLite.
+6. **Calculate your real conversion rate and EPC by currency** from approved commissions.
+7. **Pause/reactivate campaigns** without deleting history.
 
-`POST /api/v1/opportunities/top` deduplicates those sources, calculates a commercial-readiness score, optionally adds a small YouTube market adjustment, and returns a final opportunity score with explicit evidence and confidence.
+The opportunity score remains a prioritization heuristic, not a profit guarantee. Real earnings still require approved affiliate accounts, valid tracking links, qualified traffic, conversions, and compliance with program/platform rules.
 
-The scores are **prioritization heuristics, not profit forecasts**. Real earnings require approved affiliate relationships, valid tracking links, qualified traffic, conversions, and compliance with each program's terms.
+## Persistent campaign database
 
-## Safety and data rules
+By default the backend creates:
 
-- API tokens stay in environment variables and are never committed.
-- The direct scanner fetches only user-supplied public HTTP(S) pages, blocks obvious local/private targets, limits redirects, and caps page size.
-- Missing commission, EPC, cookie, or market fields are not invented.
-- Historical EPC is evidence, not a guarantee of future earnings.
-- The system does not automate advertiser approval, impersonation, spam, or policy circumvention.
-- Publishing and affiliate-program participation must follow each network, brand, and platform's rules.
+```text
+data/affiliate.db
+```
+
+Set another location with:
+
+```text
+AFFILIATE_DB_PATH=data/affiliate.db
+```
+
+SQLite tables:
+
+- `campaigns` — offer, source, opportunity score, affiliate URL, slug, lifecycle status;
+- `clicks` — timestamp, campaign, source/medium/content, referrer, user-agent, bot flag;
+- `conversions` — network/external ID, sale amount, commission amount, currency, status.
+
+Raw IP addresses are deliberately not stored. Obvious crawler/bot user-agents are recorded but excluded from human-click, conversion-rate, and EPC calculations.
+
+Revenue is never summed across currencies. Metrics return maps such as:
+
+```json
+{
+  "approved_revenue_by_currency": {"EUR": 125.0, "USD": 40.0},
+  "epc_by_currency": {"EUR": 0.625, "USD": 0.2}
+}
+```
+
+## Tracked links
+
+An active campaign with slug `elevenlabs-review` gets a local tracking route:
+
+```text
+http://localhost:8000/go/elevenlabs-review
+```
+
+Optional campaign attribution can be added:
+
+```text
+/go/elevenlabs-review?source=youtube&medium=video&content=review-1
+```
+
+The backend records the click and immediately redirects to the stored affiliate tracking URL.
+
+For real public traffic, deploy the backend to a public HTTPS domain and use that domain for `/go/...` links. `localhost` is only suitable for testing on your own machine.
+
+## Campaign workspace
+
+The React dashboard now includes a persistent workspace where you can:
+
+- start a campaign from a ranked opportunity;
+- paste your approved CJ/Impact/direct affiliate tracking URL;
+- create draft/active/paused campaigns;
+- see human clicks and excluded bot clicks;
+- log approved, pending, or reversed conversions;
+- store network order/action IDs to prevent duplicate imports;
+- see approved revenue, pending revenue, conversion rate, and real EPC;
+- activate/pause a tracked redirect without losing historical data.
+
+A public affiliate signup/program page is **not** a substitute for your personal tracking URL and will not create commission attribution.
 
 ## Backend
 
@@ -36,9 +91,13 @@ pip install -e ".[dev]"
 uvicorn app.main:app --reload --port 8000 --env-file ../.env
 ```
 
-API docs: `http://localhost:8000/docs`
+API docs:
 
-Run validation:
+```text
+http://localhost:8000/docs
+```
+
+Validation:
 
 ```bash
 cd backend
@@ -54,10 +113,13 @@ npm install
 npm run dev
 ```
 
-Default Vite URL: `http://localhost:5173`.
-Set `VITE_API_BASE_URL` if the backend is not running at `http://localhost:8000`.
+Default URL:
 
-## Credentials
+```text
+http://localhost:5173
+```
+
+## Environment
 
 Copy `.env.example` to `.env` and fill only the services you use:
 
@@ -67,84 +129,83 @@ CJ_WEBSITE_ID=
 IMPACT_ACCOUNT_SID=
 IMPACT_AUTH_TOKEN=
 YOUTUBE_API_KEY=
+AFFILIATE_DB_PATH=data/affiliate.db
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-Do not commit `.env`.
+Never commit `.env`, network tokens, or personal affiliate links that contain credentials/secrets.
 
-The verified catalog works without these credentials. CJ, Impact, and YouTube become live enrichment sources when configured.
+## Main API endpoints
 
-## API endpoints
-
-### Research
+### Opportunity research
 
 - `GET /api/v1/connectors/cj/status`
-- `GET /api/v1/cj/links?keywords=vps&advertiser_ids=joined`
+- `GET /api/v1/cj/links`
 - `GET /api/v1/connectors/impact/status`
 - `GET /api/v1/impact/programs`
 - `GET /api/v1/impact/programs/{campaign_id}/public-terms`
-- `GET /api/v1/impact/ads?campaign_id=...&ad_type=TEXT_LINK`
+- `GET /api/v1/impact/ads`
 - `GET /api/v1/connectors/youtube/status`
-- `GET /api/v1/youtube/market?query=AI%20voice`
+- `GET /api/v1/youtube/market`
 - `POST /api/v1/direct/scan`
 - `POST /api/v1/opportunities/top`
 
-Example top-opportunity request:
+### Campaign workspace
+
+- `GET /api/v1/workspace/summary`
+- `POST /api/v1/workspace/campaigns`
+- `GET /api/v1/workspace/campaigns`
+- `GET /api/v1/workspace/campaigns/{campaign_id}`
+- `PATCH /api/v1/workspace/campaigns/{campaign_id}`
+- `GET /api/v1/workspace/campaigns/{campaign_id}/metrics`
+- `POST /api/v1/workspace/campaigns/{campaign_id}/conversions`
+- `GET /api/v1/workspace/campaigns/{campaign_id}/conversions`
+- `PATCH /api/v1/workspace/conversions/{conversion_id}`
+- `GET /go/{slug}`
+
+Example campaign:
 
 ```json
 {
-  "keywords": "AI software",
-  "direct_urls": [],
-  "include_cj": true,
-  "include_impact": true,
-  "include_verified_catalog": true,
-  "enrich_impact_terms": true,
-  "include_youtube": true,
-  "youtube_probe_count": 3,
-  "limit": 10
+  "name": "ElevenLabs YouTube review",
+  "product_name": "ElevenLabs",
+  "affiliate_url": "https://your-approved-network-tracking-link.example",
+  "status": "active",
+  "source": "verified",
+  "opportunity_score": 87.4
 }
 ```
 
-Without network credentials, a query such as `AI voice`, `vibe coding`, `AI agents`, or `AI visibility` can still return matching verified programs. Configure network/API credentials to add live account-specific data.
+Example approved conversion:
 
-### Decision engine
+```json
+{
+  "commission_amount": 22.0,
+  "sale_amount": 100.0,
+  "currency": "USD",
+  "status": "approved",
+  "network": "impact",
+  "external_id": "network-action-123"
+}
+```
 
-- `POST /api/v1/score`
-- `POST /api/v1/forecast`
-- `POST /api/v1/campaign`
+## Safety and data rules
 
-## Ranking model
-
-### Commercial readiness
-
-The base score uses evidence available for the offer:
-
-- commission percentage;
-- fixed payout when available;
-- CJ historical EPC when available;
-- cookie/attribution window;
-- recurring commission terms;
-- live tracking/application-link readiness;
-- source quality and completeness.
-
-### Market adjustment
-
-If YouTube is configured, the engine samples public videos for a small number of top candidates and calculates:
-
-- interest signal from median views and recent activity;
-- competition signal from high-view and established videos.
-
-Only a modest adjustment is applied so social popularity cannot overpower actual monetization evidence.
-
-## Verified seed catalog
-
-V0.4 includes a small reviewed seed catalog for current AI-related programs such as Semrush, Lovable, Hostinger Horizons, ElevenLabs, and Sintra AI. Each record carries a verification date and caveats. These records should be refreshed when program terms change; never assume a stored commission remains valid forever.
+- API tokens remain environment-only.
+- Missing commercial/market fields are not invented.
+- Historical network EPC is evidence, not guaranteed future EPC.
+- The direct scanner only fetches user-supplied public HTTP(S) pages and blocks obvious private/local targets.
+- Click tracking does not store raw IP addresses.
+- Duplicate network/external conversion IDs are rejected.
+- Pending and reversed commissions do not count as approved revenue.
+- Revenue/EPC is kept separate by currency.
+- The system does not automate fake clicks, fake conversions, advertiser approval bypass, spam, cookie stuffing, or deceptive cloaking.
 
 ## Next roadmap
 
-1. Google Ads keyword-demand and buyer-intent connector.
-2. Google Trends integration when API access is available, with a fallback research workflow until then.
-3. Persistent SQLite/Postgres storage for offers, tracking links, clicks, conversions, and commissions.
-4. Campaign workspace that turns a selected opportunity into review/comparison/tutorial briefs.
-5. Real EPC and conversion learning based on the user's own results.
-6. Search Console/GA4 ingestion to connect content impressions → clicks → affiliate conversions → revenue.
+1. Automatic CJ/Impact commission synchronization into the conversion table.
+2. Google Ads keyword demand and buyer-intent connector.
+3. Search Console/GA4 ingestion to connect impressions → visits → affiliate clicks → conversions.
+4. Content asset records for article/video/short IDs tied to each campaign.
+5. Daily/weekly performance snapshots and winner/loser detection.
+6. PostgreSQL/Postgres migration path for a deployed multi-user version.

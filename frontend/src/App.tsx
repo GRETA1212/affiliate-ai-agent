@@ -1,5 +1,7 @@
 import { FormEvent, useState } from "react";
 
+import Workspace, { WorkspaceSeed } from "./Workspace";
+
 type ScoreResult = {
   product_name: string;
   score: number;
@@ -44,6 +46,7 @@ export default function App() {
   const [keyword, setKeyword] = useState("AI software");
   const [directUrls, setDirectUrls] = useState("");
   const [top, setTop] = useState<TopResponse | null>(null);
+  const [workspaceSeed, setWorkspaceSeed] = useState<WorkspaceSeed | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -109,14 +112,25 @@ export default function App() {
     }
   }
 
+  function startCampaign(item: RankedOpportunity) {
+    setWorkspaceSeed({
+      name: `${item.name} campaign`,
+      productName: item.name,
+      affiliateUrl: item.tracking_url || "",
+      source: item.source,
+      opportunityScore: item.opportunity_score,
+    });
+    document.getElementById("campaign-workspace")?.scrollIntoView({ behavior: "smooth" });
+  }
+
   return (
     <main>
       <header>
-        <p className="eyebrow">Affiliate AI Agent · V0.4</p>
-        <h1>Find offers worth testing before you spend time creating content.</h1>
+        <p className="eyebrow">Affiliate AI Agent · V0.5</p>
+        <h1>Find an offer, launch a tracked campaign, and learn from real revenue.</h1>
         <p className="lede">
-          Start with a verified AI-affiliate catalog, then enrich it with live CJ, Impact public
-          terms, direct program pages and YouTube market signals when your credentials are configured.
+          Research verified and live affiliate programs, then use persistent click and conversion
+          tracking to measure your own EPC instead of relying only on network averages.
         </p>
       </header>
 
@@ -197,8 +211,11 @@ export default function App() {
                       {item.reasons.slice(0, 5).map((reason) => <li key={reason}>{reason}</li>)}
                     </ul>
                     <div className="links">
-                      {item.tracking_url && <a href={item.tracking_url}>Tracking link</a>}
+                      {item.tracking_url && <a href={item.tracking_url}>Network tracking link</a>}
                       {item.program_url && <a href={item.program_url}>Program page</a>}
+                      <button type="button" className="small-button" onClick={() => startCampaign(item)}>
+                        Start campaign
+                      </button>
                     </div>
                   </div>
                 </article>
@@ -208,6 +225,10 @@ export default function App() {
           </div>
         )}
       </section>
+
+      <div id="campaign-workspace">
+        <Workspace api={API} seed={workspaceSeed} />
+      </div>
 
       <section className="panel secondary-panel">
         <h2>Manual signal scorer</h2>
@@ -229,8 +250,8 @@ export default function App() {
 
       <section className="grid">
         <article><h3>Research</h3><p>Verified programs plus live network and direct-source evidence.</p></article>
-        <article><h3>Rank</h3><p>Commercial readiness, confidence and optional YouTube market signals.</p></article>
-        <article><h3>Learn</h3><p>Next: clicks, conversions, real EPC and campaign feedback loops.</p></article>
+        <article><h3>Track</h3><p>Campaign slugs record human clicks before redirecting to your affiliate URL.</p></article>
+        <article><h3>Learn</h3><p>Approved commissions produce your actual conversion rate and EPC by currency.</p></article>
       </section>
     </main>
   );
