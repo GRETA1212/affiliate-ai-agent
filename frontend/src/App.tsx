@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 
+import Advisor from "./Advisor";
 import Workspace, { WorkspaceSeed } from "./Workspace";
 
 type ScoreResult = {
@@ -126,11 +127,12 @@ export default function App() {
   return (
     <main>
       <header>
-        <p className="eyebrow">Affiliate AI Agent · V0.5</p>
-        <h1>Find an offer, launch a tracked campaign, and learn from real revenue.</h1>
+        <p className="eyebrow">Affiliate AI Agent · V0.7</p>
+        <h1>Find offers, measure real revenue, and detect which campaigns deserve more traffic.</h1>
         <p className="lede">
-          Research verified and live affiliate programs, then use persistent click and conversion
-          tracking to measure your own EPC instead of relying only on network averages.
+          Research affiliate opportunities, track clicks, sync CJ and Impact commissions, then use
+          your own conversion rate and EPC to identify winners, losers, and campaigns that still
+          need more data.
         </p>
       </header>
 
@@ -230,6 +232,8 @@ export default function App() {
         <Workspace api={API} seed={workspaceSeed} />
       </div>
 
+      <Advisor api={API} />
+
       <section className="panel secondary-panel">
         <h2>Manual signal scorer</h2>
         <form onSubmit={submitScore}>
@@ -250,8 +254,8 @@ export default function App() {
 
       <section className="grid">
         <article><h3>Research</h3><p>Verified programs plus live network and direct-source evidence.</p></article>
-        <article><h3>Track</h3><p>Campaign slugs record human clicks before redirecting to your affiliate URL.</p></article>
-        <article><h3>Learn</h3><p>Approved commissions produce your actual conversion rate and EPC by currency.</p></article>
+        <article><h3>Track</h3><p>Campaign slugs and network sync produce your own performance history.</p></article>
+        <article><h3>Decide</h3><p>Winner/loser rules compare real EPC only within the same currency and wait for enough clicks.</p></article>
       </section>
     </main>
   );
