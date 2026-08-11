@@ -41,9 +41,7 @@ Tables include:
 - `network_events` — normalized raw CJ commission records and Impact actions;
 - `sync_state` — network sync state and errors.
 
-Raw IP addresses are deliberately not stored. Bot clicks are excluded from human-click, conversion-rate, and EPC calculations.
-
-Revenue and EPC are never merged across currencies.
+Raw IP addresses are deliberately not stored. Bot clicks are excluded from human-click, conversion-rate, and EPC calculations. Revenue and EPC are never merged across currencies.
 
 ## Winner / loser advisor
 
@@ -64,30 +62,13 @@ Default decision thresholds:
 
 The thresholds are query parameters, so they can be tuned without changing code.
 
-The advisor returns:
-
-- classification: `winner`, `loser`, `promising`, `neutral`, `insufficient_data`, or `inactive`;
-- recommended action: `scale`, `increase_test`, `hold`, `optimize`, `pause_or_rework`, `collect_data`, or `none`;
-- confidence and priority;
-- real clicks, approved/pending conversions, CVR, revenue and EPC;
-- same-currency peer EPC baseline;
-- reasons and concrete next actions;
-- EPC leader for each currency.
+The advisor returns classification, recommended action, confidence, priority, real clicks, approved/pending conversions, CVR, revenue, EPC, same-currency peer EPC baseline, reasons, next actions, and an EPC leader for each currency.
 
 Important: campaigns are **never compared across currencies**. A USD EPC is not treated as directly comparable to a EUR EPC.
 
 ## Automatic CJ + Impact synchronization
 
-### Impact
-
-Impact actions are matched by:
-
-1. exact `SubId1` campaign attribution token;
-2. otherwise a single unambiguous bound Impact `ProgramId`.
-
-The app can generate a tagged Impact tracking link using the campaign slug as `subId1`. Re-running sync updates the same normalized event/conversion instead of duplicating it.
-
-### CJ
+Impact actions are matched by exact `SubId1` campaign attribution token, otherwise by one unambiguous bound Impact `ProgramId`. The app can generate a tagged Impact tracking link using the campaign slug as `subId1`.
 
 CJ Commission Detail records are preserved as signed events. Corrections are grouped and netted before one canonical campaign conversion is materialized. Matching prefers `shopperId` when it matches a campaign token, then one unambiguous CJ `AdvertiserId` binding.
 
@@ -140,7 +121,7 @@ ruff check .
 pytest
 ```
 
-Current GitHub Actions validation: Ruff passed, backend pytest passed (35 tests), and the React production build passed.
+GitHub Actions validation for V0.7: Ruff passed, backend pytest passed, and the React production build passed.
 
 ## Frontend
 
