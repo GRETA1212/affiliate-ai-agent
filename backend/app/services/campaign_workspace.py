@@ -1,7 +1,7 @@
 import re
 import sqlite3
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
 
@@ -201,7 +201,7 @@ def update_campaign(campaign_id: str, data: CampaignUpdate) -> CampaignDetail:
     connection = connect()
     try:
         cursor = connection.execute(
-            f"UPDATE campaigns SET {assignments} WHERE id = ?",  # noqa: S608
+            f"UPDATE campaigns SET {assignments} WHERE id = ?",
             (*values, campaign_id),
         )
         if cursor.rowcount == 0:
@@ -375,7 +375,10 @@ def workspace_summary() -> WorkspaceSummary:
         ).fetchall()
         human_clicks = int((click_row["human"] if click_row else 0) or 0)
         approved = int((conversion_row["approved"] if conversion_row else 0) or 0)
-        revenue = {str(row["currency"]): round(float(row["revenue"] or 0), 2) for row in revenue_rows}
+        revenue = {
+            str(row["currency"]): round(float(row["revenue"] or 0), 2)
+            for row in revenue_rows
+        }
         epc = {
             currency: round(amount / human_clicks, 4) if human_clicks else 0.0
             for currency, amount in revenue.items()
@@ -495,7 +498,9 @@ def _campaign_from_row(row: sqlite3.Row) -> CampaignRecord:
         slug=str(row["slug"]),
         status=row["status"],
         source=str(row["source"]) if row["source"] else None,
-        opportunity_score=float(row["opportunity_score"]) if row["opportunity_score"] is not None else None,
+        opportunity_score=(
+            float(row["opportunity_score"]) if row["opportunity_score"] is not None else None
+        ),
         created_at=str(row["created_at"]),
         updated_at=str(row["updated_at"]),
     )
@@ -541,7 +546,11 @@ def _slugify(value: str) -> str:
 def _looks_like_bot(user_agent: str | None) -> bool:
     return bool(
         user_agent
-        and re.search(r"\b(bot|crawler|spider|slurp|headless|preview)\b", user_agent, re.I)
+        and re.search(
+            r"\b(bot|crawler|spider|slurp|headless|preview)\b",
+            user_agent,
+            re.IGNORECASE,
+        )
     )
 
 
@@ -558,9 +567,9 @@ def _trim(value: str | None, max_length: int) -> str | None:
 
 def _datetime_to_utc(value: datetime) -> str:
     if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc).isoformat()
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(UTC).isoformat()
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
