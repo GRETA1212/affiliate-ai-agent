@@ -51,9 +51,9 @@ CREATE TABLE IF NOT EXISTS conversions (
 CREATE INDEX IF NOT EXISTS idx_conversions_campaign_time
     ON conversions(campaign_id, occurred_at);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_conversions_network_external
-    ON conversions(network, external_id)
-    WHERE external_id IS NOT NULL;
+DROP INDEX IF EXISTS idx_conversions_network_external;
+CREATE UNIQUE INDEX idx_conversions_network_external
+    ON conversions(network, external_id);
 
 CREATE TABLE IF NOT EXISTS campaign_bindings (
     campaign_id TEXT PRIMARY KEY REFERENCES campaigns(id) ON DELETE CASCADE,
