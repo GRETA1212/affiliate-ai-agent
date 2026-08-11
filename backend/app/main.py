@@ -19,6 +19,7 @@ from app.models import (
 )
 from app.services import campaign_workspace as workspace
 from app.services import network_sync as sync_service
+from app.services import performance_advisor as advisor
 from app.services.content_agent import build_campaign
 from app.services.forecast import forecast_revenue
 from app.services.opportunity_aggregator import (
@@ -28,7 +29,7 @@ from app.services.opportunity_aggregator import (
 )
 from app.services.opportunity_scorer import score_opportunity
 
-app = FastAPI(title="Affiliate AI Agent", version="0.6.0")
+app = FastAPI(title="Affiliate AI Agent", version="0.7.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -394,6 +395,29 @@ def assign_network_event(
 )
 def get_sync_status() -> list[sync_service.SyncStateRecord]:
     return sync_service.list_sync_state()
+
+
+@app.get(
+    "/api/v1/performance/recommendations",
+    response_model=advisor.AdvisorResponse,
+)
+def performance_recommendations(
+    min_sample_clicks: int = Query(default=50, ge=10, le=10000),
+    stop_clicks: int = Query(default=150, ge=25, le=50000),
+    low_conversion_rate: float = Query(default=0.005, ge=0, le=1),
+    healthy_conversion_rate: float = Query(default=0.02, ge=0, le=1),
+    winner_epc_multiplier: float = Query(default=1.25, ge=1, le=10),
+    loser_epc_multiplier: float = Query(default=0.5, ge=0, le=1),
+) -> advisor.AdvisorResponse:
+    settings = advisor.AdvisorSettings(
+        min_sample_clicks=min_sample_clicks,
+        stop_clicks=stop_clicks,
+        low_conversion_rate=low_conversion_rate,
+        healthy_conversion_rate=healthy_conversion_rate,
+        winner_epc_multiplier=winner_epc_multiplier,
+        loser_epc_multiplier=loser_epc_multiplier,
+    )
+    return advisor.analyze_portfolio(settings)
 
 
 @app.get("/go/{slug}", include_in_schema=False)
