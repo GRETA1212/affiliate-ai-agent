@@ -218,7 +218,7 @@ def create_workspace_campaign(data: workspace.CampaignCreate) -> workspace.Campa
 
 @app.get("/api/v1/workspace/campaigns", response_model=list[workspace.CampaignDetail])
 def list_workspace_campaigns(
-    status: workspace.CampaignStatus | None = Query(default=None),
+    status: workspace.CampaignStatus | None = None,
 ) -> list[workspace.CampaignDetail]:
     return workspace.list_campaigns(status)
 
