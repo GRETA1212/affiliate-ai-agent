@@ -2,16 +2,21 @@ import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { commercialPages } from "../src/commercial-pages.mjs";
 import { pages, renderPage, siteUrl } from "../src/site.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 const dist = join(root, "dist");
 
+// Commercial pages can replace a generic category/index page with a fact-checked version.
+// Map preserves first insertion order while the later commercial page replaces the value.
+const resolvedPages = [...new Map([...pages, ...commercialPages].map((page) => [page.path, page])).values()];
+
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 
-for (const page of pages) {
+for (const page of resolvedPages) {
   const relative = page.path === "/" ? "index.html" : join(page.path.slice(1), "index.html");
   const target = join(dist, relative);
   await mkdir(dirname(target), { recursive: true });
@@ -20,7 +25,7 @@ for (const page of pages) {
 
 await cp(join(root, "src", "styles.css"), join(dist, "styles.css"));
 
-const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${resolvedPages
   .map((page) => `  <url><loc>${siteUrl}${page.path}</loc></url>`)
   .join("\n")}\n</urlset>\n`;
 await writeFile(join(dist, "sitemap.xml"), sitemap, "utf8");
@@ -33,4 +38,4 @@ await writeFile(
 if (siteUrl.includes("example.invalid")) {
   console.warn("Website built with placeholder SITE_URL. Set SITE_URL before public deployment.");
 }
-console.log(`Built ${pages.length} public pages into ${dist}`);
+console.log(`Built ${resolvedPages.length} public pages into ${dist}`);
