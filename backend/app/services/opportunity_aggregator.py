@@ -1,9 +1,15 @@
 import re
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, HttpUrl
 
 from app.connectors import cj, impact
-from app.connectors.direct_program import DirectProgramScanError, DirectProgramScanRequest, scan_program
+from app.connectors.direct_program import (
+    DirectProgramScan,
+    DirectProgramScanError,
+    DirectProgramScanRequest,
+    scan_program,
+)
 
 
 class TopOpportunityRequest(BaseModel):
@@ -147,11 +153,7 @@ def _from_impact(program: impact.ImpactProgram) -> RankedAffiliateOpportunity:
     )
 
 
-def _from_direct(scanned: object) -> RankedAffiliateOpportunity:
-    from app.connectors.direct_program import DirectProgramScan
-
-    if not isinstance(scanned, DirectProgramScan):
-        raise TypeError("Expected DirectProgramScan")
+def _from_direct(scanned: DirectProgramScan) -> RankedAffiliateOpportunity:
     score, reasons, confidence = _score(
         commission_percent=scanned.commission_percent,
         epc_per_click=None,
@@ -258,8 +260,6 @@ def _matches_keywords(keywords: str | None, program: impact.ImpactProgram) -> bo
 
 
 def _domain_name(url: str) -> str:
-    from urllib.parse import urlparse
-
     host = urlparse(url).hostname or url
     return host.removeprefix("www.")
 
