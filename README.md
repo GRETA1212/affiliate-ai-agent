@@ -140,6 +140,8 @@ ruff check .
 pytest
 ```
 
+Current GitHub Actions validation: Ruff passed, backend pytest passed (35 tests), and the React production build passed.
+
 ## Frontend
 
 ```bash
