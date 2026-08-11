@@ -1,150 +1,120 @@
 # Affiliate AI Agent
 
-AI-assisted affiliate opportunity research, campaign tracking, automatic commission sync,
-revenue measurement, forecasting, and performance learning.
+AI-assisted affiliate opportunity research, campaign tracking, automatic CJ/Impact commission sync, real revenue measurement, and evidence-based campaign recommendations.
 
-## Current MVP (V0.6)
+## Current MVP — V0.7
 
-The agent now covers a measurable affiliate loop:
+The measurable loop is now:
 
-1. **Find opportunities** from the verified AI-affiliate catalog, CJ, Impact, direct
-   affiliate pages, and YouTube market signals.
+1. **Find opportunities** from the verified AI-affiliate catalog, CJ, Impact, direct affiliate pages, and YouTube market signals.
 2. **Create a persistent campaign** with your approved affiliate tracking URL.
-3. **Bind the campaign to CJ or Impact** using the network advertiser/program ID.
-4. **Publish the `/go/{slug}` tracking link** instead of the raw network URL.
-5. **Record human/bot-aware clicks** before redirecting to the affiliate network.
-6. **Sync CJ commissions and Impact actions** into SQLite.
-7. **Reconcile approvals, reversals, and CJ correction deltas** without double-counting.
-8. **Calculate real conversion rate and EPC by currency** from approved commissions.
-9. **Keep unmatched network events** for manual assignment instead of guessing attribution.
+3. **Bind the campaign to CJ or Impact** using the advertiser/program ID.
+4. **Publish `/go/{slug}`** and record human/bot-aware clicks before redirecting.
+5. **Sync CJ commissions and Impact actions** into SQLite.
+6. **Reconcile approvals, reversals, and CJ correction deltas** without double-counting.
+7. **Calculate real conversion rate and EPC by currency** from approved commissions.
+8. **Detect winners, losers, promising tests, and campaigns that still need more data.**
+9. **Recommend the next action**: scale, increase the test, hold, optimize, pause/rework, or collect more data.
 
-Opportunity scores are prioritization heuristics, not profit forecasts. Real earnings require
-approved affiliate accounts, valid tracking links, qualified traffic, conversions, and compliance
-with program/platform rules.
+Opportunity scores and advisor outputs are decision aids, not profit guarantees. Real earnings require approved affiliate accounts, valid tracking links, qualified traffic, conversions, and compliance with program/platform rules.
 
 ## Persistent database
 
-By default the backend creates:
+Default database:
 
 ```text
 data/affiliate.db
 ```
 
-Set another location with:
+Override with:
 
 ```text
 AFFILIATE_DB_PATH=data/affiliate.db
 ```
 
-SQLite tables:
+Tables include:
 
-- `campaigns` — offer, source, opportunity score, affiliate URL, slug, lifecycle status;
-- `clicks` — timestamp, campaign, source/medium/content, referrer, user-agent, bot flag;
-- `conversions` — canonical campaign conversions used for revenue/EPC;
-- `campaign_bindings` — network, program/advertiser ID, campaign attribution token;
-- `network_events` — raw normalized CJ commission records and Impact actions;
-- `sync_state` — last successful sync, cursor, and error state by network.
+- `campaigns` — offer, affiliate URL, slug, source, opportunity score and lifecycle status;
+- `clicks` — timestamp, source/medium/content, referrer, user-agent and bot flag;
+- `conversions` — canonical approved/pending/reversed campaign conversions;
+- `campaign_bindings` — CJ/Impact program IDs and campaign attribution token;
+- `network_events` — normalized raw CJ commission records and Impact actions;
+- `sync_state` — network sync state and errors.
 
-Raw IP addresses are deliberately not stored. Obvious crawler/bot user-agents are recorded but
-excluded from human-click, conversion-rate, and EPC calculations.
+Raw IP addresses are deliberately not stored. Bot clicks are excluded from human-click, conversion-rate, and EPC calculations.
 
-Revenue is never summed across currencies. Metrics return maps such as:
+Revenue and EPC are never merged across currencies.
 
-```json
-{
-  "approved_revenue_by_currency": {"EUR": 125.0, "USD": 40.0},
-  "epc_by_currency": {"EUR": 0.625, "USD": 0.2}
-}
+## Winner / loser advisor
+
+Endpoint:
+
+```text
+GET /api/v1/performance/recommendations
 ```
+
+Default decision thresholds:
+
+- minimum sample: **50 human clicks**;
+- hard no-conversion review: **150 human clicks**;
+- healthy test CVR: **2%**;
+- low CVR warning: **0.5%**;
+- relative winner: real EPC at least **1.25×** the same-currency peer median;
+- relative weak signal: real EPC at or below **0.5×** the same-currency peer median after enough traffic.
+
+The thresholds are query parameters, so they can be tuned without changing code.
+
+The advisor returns:
+
+- classification: `winner`, `loser`, `promising`, `neutral`, `insufficient_data`, or `inactive`;
+- recommended action: `scale`, `increase_test`, `hold`, `optimize`, `pause_or_rework`, `collect_data`, or `none`;
+- confidence and priority;
+- real clicks, approved/pending conversions, CVR, revenue and EPC;
+- same-currency peer EPC baseline;
+- reasons and concrete next actions;
+- EPC leader for each currency.
+
+Important: campaigns are **never compared across currencies**. A USD EPC is not treated as directly comparable to a EUR EPC.
 
 ## Automatic CJ + Impact synchronization
 
 ### Impact
 
-Impact actions are matched in this order:
+Impact actions are matched by:
 
-1. `SubId1` → campaign attribution token;
-2. if there is no token match, a **single unambiguous** campaign binding for the Impact
-   `ProgramId`.
+1. exact `SubId1` campaign attribution token;
+2. otherwise a single unambiguous bound Impact `ProgramId`.
 
-The app can create an Impact tracking link that uses the campaign slug as `subId1`. This makes
-multiple campaigns for the same program independently attributable.
-
-Action states are normalized as:
-
-- `PENDING` → pending;
-- `APPROVED` → approved;
-- `REVERSED` → reversed.
-
-Re-running sync updates the same conversion rather than creating a duplicate.
+The app can generate a tagged Impact tracking link using the campaign slug as `subId1`. Re-running sync updates the same normalized event/conversion instead of duplicating it.
 
 ### CJ
 
-CJ Commission Detail records are stored as signed delta events. Corrections are grouped using
-`originalActionId`, then `orderId`, then `commissionId` as a fallback. The group is recalculated
-every time new commission records arrive.
+CJ Commission Detail records are preserved as signed events. Corrections are grouped and netted before one canonical campaign conversion is materialized. Matching prefers `shopperId` when it matches a campaign token, then one unambiguous CJ `AdvertiserId` binding.
 
-This matters because a CJ cancellation/correction can arrive as another commission record with a
-negative commission amount. V0.6 keeps both raw events and materializes one canonical campaign
-conversion from their net result.
-
-CJ matching uses:
-
-1. `shopperId` when it matches a campaign attribution token;
-2. otherwise one unambiguous campaign binding for the CJ `AdvertiserId`.
-
-The app does **not** invent or rewrite CJ SID parameters. If more than one campaign could match the
-same advertiser and no unique attribution token is present, the event remains unmatched.
+Ambiguous events remain unmatched instead of being guessed.
 
 ## Unmatched events
 
-Automatic sync never guesses when attribution is ambiguous.
-
-Use:
-
 ```text
 GET /api/v1/workspace/unmatched
-```
-
-Then assign an event:
-
-```text
 POST /api/v1/workspace/network-events/{event_id}/assign/{campaign_id}
 ```
 
-For CJ, assigning one correction event assigns its complete correction group before recalculating
-the canonical conversion.
-
 ## Tracked links
 
-An active campaign with slug `elevenlabs-review` gets:
+Example local test link:
 
 ```text
 http://localhost:8000/go/elevenlabs-review
 ```
 
-Optional traffic attribution:
+Traffic attribution:
 
 ```text
 /go/elevenlabs-review?source=youtube&medium=video&content=review-1
 ```
 
-For real public traffic, deploy the backend to a public HTTPS domain. `localhost` is only for local
-testing.
-
-## Campaign workspace
-
-The React dashboard supports:
-
-- starting a campaign from a ranked opportunity;
-- storing an approved affiliate tracking URL;
-- binding the campaign to CJ or Impact;
-- generating a tagged Impact tracking link when Impact credentials are configured;
-- syncing the last seven days from CJ + Impact;
-- seeing fetched, matched, unmatched, and updated-conversion counts;
-- manual conversion entry as a fallback;
-- activating/pausing tracked redirects without deleting history;
-- approved revenue, pending revenue, conversion rate, and real EPC.
+For real external traffic, deploy the backend on a public HTTPS domain. `localhost` is only for local testing.
 
 ## Backend
 
@@ -166,7 +136,6 @@ http://localhost:8000/docs
 Validation:
 
 ```bash
-cd backend
 ruff check .
 pytest
 ```
@@ -179,11 +148,13 @@ npm install
 npm run dev
 ```
 
-Default URL:
+Open:
 
 ```text
 http://localhost:5173
 ```
+
+The React UI contains opportunity research, the persistent campaign workspace, CJ/Impact sync controls, real revenue/EPC metrics, and the V0.7 performance advisor.
 
 ## Credentials
 
@@ -207,76 +178,53 @@ VITE_API_BASE_URL=http://localhost:8000
 
 Do not commit `.env`.
 
-CJ Link Search needs `CJ_API_TOKEN` + `CJ_WEBSITE_ID`.
-CJ revenue sync needs `CJ_API_TOKEN` + `CJ_PUBLISHER_ID`.
-Impact research, tracking-link creation, and action sync need the Impact credentials.
+## Main APIs
 
-## V0.6 workspace API
+Research:
 
-### Campaigns and tracking
-
-- `GET /api/v1/workspace/summary`
-- `POST /api/v1/workspace/campaigns`
-- `GET /api/v1/workspace/campaigns`
-- `PATCH /api/v1/workspace/campaigns/{campaign_id}`
-- `GET /api/v1/workspace/campaigns/{campaign_id}/metrics`
-- `POST /api/v1/workspace/campaigns/{campaign_id}/conversions`
-- `GET /go/{slug}`
-
-### Network reconciliation
-
-- `PUT /api/v1/workspace/campaigns/{campaign_id}/binding`
-- `GET /api/v1/workspace/campaigns/{campaign_id}/binding`
-- `POST /api/v1/workspace/campaigns/{campaign_id}/impact-tracking-link`
-- `POST /api/v1/workspace/sync`
-- `GET /api/v1/workspace/sync/status`
-- `GET /api/v1/workspace/unmatched`
-- `POST /api/v1/workspace/network-events/{event_id}/assign/{campaign_id}`
-
-Example sync:
-
-```json
-{
-  "networks": ["cj", "impact"],
-  "lookback_days": 7
-}
+```text
+POST /api/v1/opportunities/top
+GET  /api/v1/cj/links
+GET  /api/v1/impact/programs
+GET  /api/v1/youtube/market
 ```
 
-A connector that is not configured returns a warning inside its sync result; it does not prevent
-the other configured network from syncing.
+Campaign/revenue:
 
-## Research API
+```text
+POST /api/v1/workspace/campaigns
+GET  /api/v1/workspace/campaigns
+GET  /api/v1/workspace/summary
+PUT  /api/v1/workspace/campaigns/{campaign_id}/binding
+POST /api/v1/workspace/campaigns/{campaign_id}/impact-tracking-link
+POST /api/v1/workspace/sync
+GET  /api/v1/workspace/unmatched
+```
 
-- `GET /api/v1/connectors/cj/status`
-- `GET /api/v1/connectors/cj/commissions/status`
-- `GET /api/v1/cj/links`
-- `GET /api/v1/connectors/impact/status`
-- `GET /api/v1/impact/programs`
-- `GET /api/v1/impact/programs/{campaign_id}/public-terms`
-- `GET /api/v1/impact/ads`
-- `GET /api/v1/connectors/youtube/status`
-- `GET /api/v1/youtube/market`
-- `POST /api/v1/direct/scan`
-- `POST /api/v1/opportunities/top`
+Performance:
 
-## Safety and accounting rules
+```text
+GET /api/v1/performance/recommendations
+```
+
+## Accounting and safety rules
 
 - Secrets stay in environment variables.
-- Network event IDs are idempotent: repeated syncs update rather than duplicate.
+- Repeated network syncs update instead of duplicate.
 - Pending and reversed commissions do not count as approved revenue.
 - CJ correction records are netted by correction group.
-- Ambiguous attribution remains unmatched rather than being silently assigned.
+- Ambiguous attribution remains unmatched.
 - Bot clicks are excluded from human KPIs.
-- Currency totals are kept separate.
-- A public affiliate signup/program page is not a personal affiliate tracking link.
-- Automatic publishing, fake clicks/conversions, cookie stuffing, and approval bypass are not part
-  of this project.
+- Currency totals and EPC comparisons remain separate.
+- A public affiliate signup page is not a personal tracking link.
+- Fake clicks/conversions, cookie stuffing, approval bypass, deceptive reviews, and uncontrolled auto-publishing are not part of the project.
 
 ## Next roadmap
 
-1. Scheduled server-side sync jobs with retry/backoff and sync history.
-2. Google Ads buyer-intent/search-demand data.
-3. Search Console + GA4 ingestion.
-4. Persisted content assets and content-to-campaign attribution.
-5. Relative winner/loser detection from real campaign performance.
-6. PostgreSQL deployment path once local SQLite volume is outgrown.
+1. Scheduled server-side CJ/Impact sync with retry/backoff and sync history.
+2. Persist recommendation snapshots so the agent can show how a campaign changed over time.
+3. Google Ads buyer-intent/search-demand data.
+4. Search Console + GA4 ingestion.
+5. Content assets tied to campaign/source/content IDs.
+6. Controlled experiment tracking (A/B content angles and offers).
+7. PostgreSQL deployment path once SQLite volume is outgrown.
