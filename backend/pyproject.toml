@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "affiliate-ai-agent-backend"
-version = "0.2.0"
-description = "Affiliate opportunity scoring, forecasting, and live network research API"
+version = "0.3.0"
+description = "Affiliate opportunity research, scoring and forecasting API"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.116,<1",

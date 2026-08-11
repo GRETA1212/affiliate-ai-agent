@@ -6,23 +6,27 @@ type ScoreResult = {
   rating: string;
 };
 
-type CJLink = {
-  advertiser_id: string | null;
-  advertiser_name: string | null;
-  link_id: string | null;
-  link_name: string | null;
-  category: string | null;
-  sale_commission: string | null;
-  seven_day_epc_per_100_clicks: number | null;
-  three_month_epc_per_100_clicks: number | null;
-  relationship_status: string | null;
+type RankedOpportunity = {
+  source: string;
+  name: string;
+  advertiser: string | null;
+  program_url: string | null;
+  tracking_url: string | null;
+  commission_text: string | null;
+  commission_percent: number | null;
+  epc_per_click: number | null;
+  cookie_days: number | null;
+  recurring: boolean;
+  commercial_readiness_score: number;
+  confidence: number;
+  reasons: string[];
 };
 
-type CJSearchResult = {
-  total_matched: number;
-  records_returned: number;
-  page_number: number;
-  links: CJLink[];
+type TopResponse = {
+  keywords: string | null;
+  opportunities: RankedOpportunity[];
+  warnings: string[];
+  scoring_note: string;
 };
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -30,13 +34,13 @@ const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 export default function App() {
   const [product, setProduct] = useState("Example VPS");
   const [result, setResult] = useState<ScoreResult | null>(null);
+  const [keyword, setKeyword] = useState("AI software");
+  const [directUrls, setDirectUrls] = useState("");
+  const [top, setTop] = useState<TopResponse | null>(null);
   const [error, setError] = useState("");
-  const [cjKeyword, setCjKeyword] = useState("vps");
-  const [cjResult, setCjResult] = useState<CJSearchResult | null>(null);
-  const [cjError, setCjError] = useState("");
-  const [cjLoading, setCjLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  async function submit(event: FormEvent) {
+  async function submitScore(event: FormEvent) {
     event.preventDefault();
     setError("");
     const response = await fetch(`${API}/api/v1/score`, {
@@ -60,108 +64,125 @@ export default function App() {
     setResult(await response.json());
   }
 
-  async function searchCJ(event: FormEvent) {
+  async function findOpportunities(event: FormEvent) {
     event.preventDefault();
-    setCjError("");
-    setCjLoading(true);
-    setCjResult(null);
-
-    const params = new URLSearchParams({
-      advertiser_ids: "joined",
-      records_per_page: "10",
-    });
-    if (cjKeyword.trim()) {
-      params.set("keywords", cjKeyword.trim());
-    }
+    setError("");
+    setLoading(true);
+    setTop(null);
+    const urls = directUrls
+      .split(/\r?\n/)
+      .map((value) => value.trim())
+      .filter(Boolean);
 
     try {
-      const response = await fetch(`${API}/api/v1/cj/links?${params.toString()}`);
+      const response = await fetch(`${API}/api/v1/opportunities/top`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          keywords: keyword || null,
+          direct_urls: urls,
+          include_cj: true,
+          include_impact: true,
+          limit: 10,
+        }),
+      });
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { detail?: string } | null;
-        setCjError(body?.detail || "CJ search failed.");
+        setError("The opportunity search failed. Check backend logs and connector credentials.");
         return;
       }
-      setCjResult(await response.json());
+      setTop(await response.json());
     } catch {
-      setCjError("Could not reach the backend.");
+      setError("Could not reach the backend.");
     } finally {
-      setCjLoading(false);
+      setLoading(false);
     }
   }
 
   return (
     <main>
       <header>
-        <p className="eyebrow">Affiliate AI Agent · MVP</p>
-        <h1>Find opportunities before creating content.</h1>
+        <p className="eyebrow">Affiliate AI Agent · V0.3</p>
+        <h1>Find the strongest offers before creating content.</h1>
         <p className="lede">
-          Score demand, buyer intent, trend, competition, commission quality and EPC signals.
+          Search live CJ and Impact relationships, inspect public direct affiliate pages, then rank
+          offers by commercial readiness and evidence quality.
         </p>
       </header>
 
-      <section className="panel">
-        <h2>Live CJ research</h2>
-        <p className="subtle">
-          Search links from advertisers joined to your CJ publisher account. EPC is shown per 100
-          clicks, matching CJ reporting.
-        </p>
-        <form onSubmit={searchCJ}>
+      <section className="panel opportunity-panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Live research</p>
+            <h2>Top opportunities</h2>
+          </div>
+          <span className="status-dot">CJ + Impact + Direct</span>
+        </div>
+        <form onSubmit={findOpportunities} className="research-form">
           <label>
-            Keyword
-            <input value={cjKeyword} onChange={(event) => setCjKeyword(event.target.value)} />
+            Market / keyword
+            <input value={keyword} onChange={(event) => setKeyword(event.target.value)} />
           </label>
-          <button type="submit" disabled={cjLoading}>
-            {cjLoading ? "Searching…" : "Search CJ"}
+          <label className="full-width">
+            Direct affiliate pages to inspect (optional, one URL per line)
+            <textarea
+              rows={4}
+              value={directUrls}
+              placeholder={"https://example.com/affiliates\nhttps://example.ai/partners"}
+              onChange={(event) => setDirectUrls(event.target.value)}
+            />
+          </label>
+          <button type="submit" disabled={loading}>
+            {loading ? "Researching…" : "Find top opportunities"}
           </button>
         </form>
-        {cjError && <p className="error">{cjError}</p>}
-        {cjResult && (
-          <div className="cj-results">
-            <p className="subtle">
-              {cjResult.total_matched} matches · showing {cjResult.records_returned}
-            </p>
-            <div className="cj-list">
-              {cjResult.links.map((link) => (
-                <article className="cj-row" key={`${link.advertiser_id}-${link.link_id}`}>
-                  <div>
-                    <strong>{link.link_name || link.advertiser_name || "Unnamed CJ link"}</strong>
-                    <p>
-                      {link.advertiser_name || "Unknown advertiser"}
-                      {link.category ? ` · ${link.category}` : ""}
-                    </p>
-                  </div>
-                  <div className="metrics">
-                    <span>
-                      <small>Commission</small>
-                      <strong>{link.sale_commission || "—"}</strong>
-                    </span>
-                    <span>
-                      <small>7-day EPC</small>
-                      <strong>
-                        {link.seven_day_epc_per_100_clicks === null
-                          ? "—"
-                          : `$${link.seven_day_epc_per_100_clicks.toFixed(2)}`}
-                      </strong>
-                    </span>
-                    <span>
-                      <small>3-month EPC</small>
-                      <strong>
-                        {link.three_month_epc_per_100_clicks === null
-                          ? "—"
-                          : `$${link.three_month_epc_per_100_clicks.toFixed(2)}`}
-                      </strong>
-                    </span>
+
+        {top && (
+          <div className="opportunity-results">
+            {top.warnings.length > 0 && (
+              <div className="warning-box">
+                {top.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+              </div>
+            )}
+            {top.opportunities.length === 0 ? (
+              <p className="muted">No ranked opportunities yet. Configure a network or add direct URLs.</p>
+            ) : (
+              top.opportunities.map((item, index) => (
+                <article className="opportunity-card" key={`${item.source}-${item.name}-${index}`}>
+                  <div className="rank">#{index + 1}</div>
+                  <div className="opportunity-body">
+                    <div className="opportunity-title">
+                      <div>
+                        <span className="source">{item.source}</span>
+                        <h3>{item.name}</h3>
+                        {item.advertiser && <p className="muted">{item.advertiser}</p>}
+                      </div>
+                      <div className="score-block">
+                        <strong>{item.commercial_readiness_score.toFixed(0)}</strong>
+                        <small>readiness</small>
+                      </div>
+                    </div>
+                    <div className="metrics">
+                      {item.commission_percent !== null && <span>{item.commission_percent}% commission</span>}
+                      {item.epc_per_click !== null && <span>EPC ≈ {item.epc_per_click.toFixed(3)}/click</span>}
+                      {item.cookie_days !== null && <span>{item.cookie_days}-day cookie</span>}
+                      {item.recurring && <span>recurring</span>}
+                      <span>{Math.round(item.confidence * 100)}% data confidence</span>
+                    </div>
+                    <ul>
+                      {item.reasons.slice(0, 4).map((reason) => <li key={reason}>{reason}</li>)}
+                    </ul>
                   </div>
                 </article>
-              ))}
-            </div>
+              ))
+            )}
+            <p className="fine-print">{top.scoring_note}</p>
           </div>
         )}
       </section>
 
-      <section className="panel spaced">
-        <h2>Opportunity scorer</h2>
-        <form onSubmit={submit}>
+      <section className="panel secondary-panel">
+        <h2>Manual signal scorer</h2>
+        <form onSubmit={submitScore}>
           <label>
             Product or offer
             <input value={product} onChange={(event) => setProduct(event.target.value)} />
@@ -179,18 +200,9 @@ export default function App() {
       </section>
 
       <section className="grid">
-        <article>
-          <h3>Research</h3>
-          <p>CJ is live; Impact, Google Ads and YouTube are the next data connectors.</p>
-        </article>
-        <article>
-          <h3>Forecast</h3>
-          <p>Estimate clicks, conversions, revenue and EPC before investing time.</p>
-        </article>
-        <article>
-          <h3>Create</h3>
-          <p>Generate help-first campaign angles with clear affiliate disclosure.</p>
-        </article>
+        <article><h3>Research</h3><p>Live network relationships and direct affiliate terms.</p></article>
+        <article><h3>Rank</h3><p>Commercial readiness with explicit confidence and evidence.</p></article>
+        <article><h3>Learn</h3><p>Next: demand, trends, clicks, conversions and real EPC feedback.</p></article>
       </section>
     </main>
   );
