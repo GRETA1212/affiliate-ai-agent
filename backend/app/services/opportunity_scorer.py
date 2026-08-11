@@ -1,6 +1,5 @@
 from app.models import OfferSignals, OpportunityResult, ScoreBreakdown
 
-
 WEIGHTS = {
     "demand": 0.24,
     "buyer_intent": 0.22,
