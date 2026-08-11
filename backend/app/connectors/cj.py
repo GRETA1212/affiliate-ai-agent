@@ -1,5 +1,7 @@
+import json
 import os
 from dataclasses import dataclass
+from datetime import datetime
 from xml.etree import ElementTree as ET
 
 import httpx
@@ -8,6 +10,7 @@ from pydantic import BaseModel, Field
 from app.connectors.base import ConnectorStatus
 
 CJ_LINK_SEARCH_URL = "https://link-search.api.cj.com/v2/link-search"
+CJ_COMMISSION_API_URL = "https://commissions.api.cj.com/query"
 
 
 class CJConfigurationError(RuntimeError):
@@ -23,6 +26,13 @@ class CJConfig:
     token: str
     website_id: str
     link_search_url: str = CJ_LINK_SEARCH_URL
+
+
+@dataclass(frozen=True)
+class CJCommissionConfig:
+    token: str
+    publisher_id: str
+    commission_api_url: str = CJ_COMMISSION_API_URL
 
 
 class CJLinkSearchQuery(BaseModel):
@@ -66,6 +76,36 @@ class CJLinkSearchResponse(BaseModel):
     links: list[CJLink]
 
 
+class CJCommissionRecord(BaseModel):
+    commission_id: str
+    original_action_id: str | None
+    original: bool | None
+    action_status: str | None
+    validation_status: str | None
+    action_type: str | None
+    action_tracker_id: str | None
+    action_tracker_name: str | None
+    advertiser_id: str | None
+    advertiser_name: str | None
+    publisher_id: str | None
+    website_id: str | None
+    website_name: str | None
+    order_id: str | None
+    shopper_id: str | None
+    source: str | None
+    posting_date: str | None
+    event_date: str | None
+    sale_amount_usd: float
+    commission_amount_usd: float
+
+
+class CJCommissionResponse(BaseModel):
+    count: int
+    payload_complete: bool
+    max_commission_id: str | None
+    records: list[CJCommissionRecord]
+
+
 def status() -> ConnectorStatus:
     configured = bool(os.getenv("CJ_API_TOKEN") and os.getenv("CJ_WEBSITE_ID"))
     return ConnectorStatus(
@@ -75,6 +115,19 @@ def status() -> ConnectorStatus:
             "Live CJ Link Search is ready. Set CJ_API_TOKEN and CJ_WEBSITE_ID."
             if not configured
             else "Live CJ Link Search is configured."
+        ),
+    )
+
+
+def commission_status() -> ConnectorStatus:
+    configured = bool(os.getenv("CJ_API_TOKEN") and os.getenv("CJ_PUBLISHER_ID"))
+    return ConnectorStatus(
+        name="cj_commissions",
+        configured=configured,
+        note=(
+            "CJ commission sync is ready. Set CJ_API_TOKEN and CJ_PUBLISHER_ID."
+            if not configured
+            else "CJ commission sync is configured."
         ),
     )
 
@@ -90,6 +143,23 @@ def config_from_env() -> CJConfig:
         token=token,
         website_id=website_id,
         link_search_url=os.getenv("CJ_LINK_SEARCH_URL", CJ_LINK_SEARCH_URL).strip(),
+    )
+
+
+def commission_config_from_env() -> CJCommissionConfig:
+    token = os.getenv("CJ_API_TOKEN", "").strip()
+    publisher_id = os.getenv("CJ_PUBLISHER_ID", "").strip()
+    if not token or not publisher_id:
+        raise CJConfigurationError(
+            "CJ commission sync is not configured. Set CJ_API_TOKEN and CJ_PUBLISHER_ID."
+        )
+    return CJCommissionConfig(
+        token=token,
+        publisher_id=publisher_id,
+        commission_api_url=os.getenv(
+            "CJ_COMMISSION_API_URL",
+            CJ_COMMISSION_API_URL,
+        ).strip(),
     )
 
 
@@ -118,14 +188,74 @@ def search_links(
         if owns_client:
             http_client.close()
 
-    if response.status_code in {401, 403}:
-        raise CJAPIError("CJ rejected the credentials or this publisher does not have API access.")
-    if response.status_code == 429:
-        raise CJAPIError("CJ rate limit reached. Wait before searching again.")
-    if response.status_code >= 400:
-        raise CJAPIError(f"CJ Link Search returned HTTP {response.status_code}.")
-
+    _raise_for_status(response, "CJ Link Search")
     return parse_link_search_xml(response.text)
+
+
+def list_commissions(
+    since_posting_date: datetime,
+    before_posting_date: datetime,
+    *,
+    since_commission_id: str | None = None,
+    config: CJCommissionConfig | None = None,
+    client: httpx.Client | None = None,
+) -> CJCommissionResponse:
+    resolved = config or commission_config_from_env()
+    query = _commission_query(
+        resolved.publisher_id,
+        since_posting_date.isoformat(),
+        before_posting_date.isoformat(),
+        since_commission_id,
+    )
+    headers = {
+        "Authorization": f"Bearer {resolved.token}",
+        "Content-Type": "application/json",
+    }
+    owns_client = client is None
+    http_client = client or httpx.Client(timeout=30.0)
+    try:
+        try:
+            response = http_client.post(
+                resolved.commission_api_url,
+                json={"query": query},
+                headers=headers,
+            )
+        except httpx.RequestError as exc:
+            raise CJAPIError("Could not reach the CJ Commission Detail API.") from exc
+    finally:
+        if owns_client:
+            http_client.close()
+
+    _raise_for_status(response, "CJ Commission Detail")
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise CJAPIError("CJ Commission Detail returned invalid JSON.") from exc
+    if not isinstance(payload, dict):
+        raise CJAPIError("CJ Commission Detail returned an unexpected response shape.")
+    if payload.get("errors"):
+        raise CJAPIError("CJ Commission Detail returned a GraphQL error.")
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise CJAPIError("CJ Commission Detail response did not contain data.")
+    commissions = data.get("publisherCommissions")
+    if not isinstance(commissions, dict):
+        raise CJAPIError("CJ Commission Detail response did not contain publisherCommissions.")
+
+    raw_records = commissions.get("records")
+    records = []
+    if isinstance(raw_records, list):
+        records = [
+            _parse_commission_record(item)
+            for item in raw_records
+            if isinstance(item, dict)
+        ]
+    return CJCommissionResponse(
+        count=_optional_int(commissions.get("count")) or len(records),
+        payload_complete=_bool_value(commissions.get("payloadComplete")),
+        max_commission_id=_string(commissions.get("maxCommissionId")),
+        records=records,
+    )
 
 
 def parse_link_search_xml(payload: str) -> CJLinkSearchResponse:
@@ -178,6 +308,92 @@ def parse_link_search_xml(payload: str) -> CJLinkSearchResponse:
         page_number=_attribute_int(links_node, "page-number", fallback=1),
         links=links,
     )
+
+
+def _commission_query(
+    publisher_id: str,
+    since_posting_date: str,
+    before_posting_date: str,
+    since_commission_id: str | None,
+) -> str:
+    arguments = [
+        f"forPublishers: [{json.dumps(publisher_id)}]",
+        f"sincePostingDate: {json.dumps(since_posting_date)}",
+        f"beforePostingDate: {json.dumps(before_posting_date)}",
+    ]
+    if since_commission_id:
+        arguments.append(f"sinceCommissionId: {json.dumps(since_commission_id)}")
+    joined = ",\n      ".join(arguments)
+    return f"""
+query {{
+  publisherCommissions(
+      {joined}
+  ) {{
+    count
+    payloadComplete
+    maxCommissionId
+    records {{
+      commissionId
+      originalActionId
+      original
+      actionStatus
+      validationStatus
+      actionType
+      actionTrackerId
+      actionTrackerName
+      advertiserId
+      advertiserName
+      publisherId
+      websiteId
+      websiteName
+      orderId
+      shopperId
+      source
+      postingDate
+      eventDate
+      saleAmountUsd
+      pubCommissionAmountUsd
+    }}
+  }}
+}}
+""".strip()
+
+
+def _parse_commission_record(item: dict[str, object]) -> CJCommissionRecord:
+    commission_id = _string(item.get("commissionId"))
+    if not commission_id:
+        raise CJAPIError("CJ commission record did not include commissionId.")
+    return CJCommissionRecord(
+        commission_id=commission_id,
+        original_action_id=_string(item.get("originalActionId")),
+        original=_optional_bool(item.get("original")),
+        action_status=_string(item.get("actionStatus")),
+        validation_status=_string(item.get("validationStatus")),
+        action_type=_string(item.get("actionType")),
+        action_tracker_id=_string(item.get("actionTrackerId")),
+        action_tracker_name=_string(item.get("actionTrackerName")),
+        advertiser_id=_string(item.get("advertiserId")),
+        advertiser_name=_string(item.get("advertiserName")),
+        publisher_id=_string(item.get("publisherId")),
+        website_id=_string(item.get("websiteId")),
+        website_name=_string(item.get("websiteName")),
+        order_id=_string(item.get("orderId")),
+        shopper_id=_string(item.get("shopperId")),
+        source=_string(item.get("source")),
+        posting_date=_string(item.get("postingDate")),
+        event_date=_string(item.get("eventDate")),
+        sale_amount_usd=_float_value(item.get("saleAmountUsd")),
+        commission_amount_usd=_float_value(item.get("pubCommissionAmountUsd")),
+    )
+
+
+def _raise_for_status(response: httpx.Response, label: str) -> None:
+    if response.status_code in {401, 403}:
+        raise CJAPIError(f"{label} rejected the credentials or API access is unavailable.")
+    if response.status_code == 429:
+        raise CJAPIError(f"{label} rate limit reached. Wait before trying again.")
+    if response.status_code >= 400:
+        raise CJAPIError(f"{label} returned HTTP {response.status_code}.")
 
 
 def _build_params(query: CJLinkSearchQuery, website_id: str) -> dict[str, str | int]:
@@ -266,3 +482,40 @@ def _attribute_int(node: ET.Element, name: str, fallback: int = 0) -> int:
         return int(node.attrib.get(name, fallback))
     except (TypeError, ValueError):
         return fallback
+
+
+def _string(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _float_value(value: object) -> float:
+    if value is None or str(value).strip() == "":
+        return 0.0
+    try:
+        return float(str(value).replace(",", ""))
+    except ValueError:
+        return 0.0
+
+
+def _optional_int(value: object) -> int | None:
+    if value is None or str(value).strip() == "":
+        return None
+    try:
+        return int(float(str(value)))
+    except ValueError:
+        return None
+
+
+def _bool_value(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"true", "1", "yes"}
+
+
+def _optional_bool(value: object) -> bool | None:
+    if value is None or str(value).strip() == "":
+        return None
+    return _bool_value(value)

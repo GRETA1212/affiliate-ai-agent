@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from datetime import datetime
 
 import httpx
 from pydantic import BaseModel, Field
@@ -93,6 +94,41 @@ class ImpactPublicTerms(BaseModel):
     uri: str | None
 
 
+class ImpactAction(BaseModel):
+    id: str
+    campaign_id: str | None
+    campaign_name: str | None
+    action_tracker_id: str | None
+    action_tracker_name: str | None
+    state: str | None
+    payout: float
+    amount: float
+    currency: str
+    event_date: str | None
+    creation_date: str | None
+    locking_date: str | None
+    cleared_date: str | None
+    oid: str | None
+    sub_id1: str | None
+    sub_id2: str | None
+    sub_id3: str | None
+    shared_id: str | None
+    ad_id: str | None
+    referring_domain: str | None
+
+
+class ImpactActionListResponse(BaseModel):
+    page: int
+    page_size: int
+    total: int | None
+    num_pages: int | None
+    actions: list[ImpactAction]
+
+
+class ImpactTrackingLink(BaseModel):
+    tracking_url: str
+
+
 def status() -> ConnectorStatus:
     configured = bool(os.getenv("IMPACT_ACCOUNT_SID") and os.getenv("IMPACT_AUTH_TOKEN"))
     return ConnectorStatus(
@@ -128,7 +164,8 @@ def list_programs(
     client: httpx.Client | None = None,
 ) -> ImpactProgramListResponse:
     resolved = config or config_from_env()
-    payload = _get_json(
+    payload = _request_json(
+        "GET",
         f"{resolved.api_base_url}/Mediapartners/{resolved.account_sid}/Campaigns",
         params={"Page": page, "PageSize": page_size},
         config=resolved,
@@ -159,7 +196,8 @@ def list_ads(
         params["CampaignId"] = campaign_id
     if ad_type:
         params["Type"] = ad_type.upper()
-    payload = _get_json(
+    payload = _request_json(
+        "GET",
         f"{resolved.api_base_url}/Mediapartners/{resolved.account_sid}/Ads",
         params=params,
         config=resolved,
@@ -182,7 +220,8 @@ def get_public_terms(
     client: httpx.Client | None = None,
 ) -> ImpactPublicTerms:
     resolved = config or config_from_env()
-    payload = _get_json(
+    payload = _request_json(
+        "GET",
         (
             f"{resolved.api_base_url}/Mediapartners/{resolved.account_sid}"
             f"/Campaigns/{campaign_id}/PublicTerms"
@@ -194,7 +233,70 @@ def get_public_terms(
     return _parse_public_terms(payload)
 
 
-def _get_json(
+def list_actions(
+    start_date: datetime,
+    end_date: datetime,
+    *,
+    page: int = 1,
+    config: ImpactConfig | None = None,
+    client: httpx.Client | None = None,
+) -> ImpactActionListResponse:
+    resolved = config or config_from_env()
+    payload = _request_json(
+        "GET",
+        f"{resolved.api_base_url}/Mediapartners/{resolved.account_sid}/Actions",
+        params={
+            "StartDate": start_date.isoformat(),
+            "EndDate": end_date.isoformat(),
+            "Page": page,
+        },
+        config=resolved,
+        client=client,
+    )
+    records = _as_list_with_keys(payload.get("Actions"), ("Action", "Actions"))
+    actions = [_parse_action(item) for item in records if isinstance(item, dict)]
+    return ImpactActionListResponse(
+        page=_int_meta(payload, "@page", page),
+        page_size=_int_meta(payload, "@pagesize", len(actions)),
+        total=_optional_int(payload.get("@total")),
+        num_pages=_optional_int(payload.get("@numpages")),
+        actions=actions,
+    )
+
+
+def create_tracking_link(
+    program_id: str,
+    *,
+    sub_id1: str,
+    deep_link: str | None = None,
+    media_property_id: str | None = None,
+    config: ImpactConfig | None = None,
+    client: httpx.Client | None = None,
+) -> ImpactTrackingLink:
+    resolved = config or config_from_env()
+    params: dict[str, str] = {"subId1": sub_id1}
+    if deep_link:
+        params["DeepLink"] = deep_link
+    if media_property_id:
+        params["MediaPartnerPropertyId"] = media_property_id
+    payload = _request_json(
+        "POST",
+        (
+            f"{resolved.api_base_url}/Mediapartners/{resolved.account_sid}"
+            f"/Programs/{program_id}/TrackingLinks"
+        ),
+        params=params,
+        config=resolved,
+        client=client,
+    )
+    tracking_url = _string(payload.get("TrackingURL"))
+    if not tracking_url:
+        raise ImpactAPIError("Impact tracking-link response did not include TrackingURL.")
+    return ImpactTrackingLink(tracking_url=tracking_url)
+
+
+def _request_json(
+    method: str,
     url: str,
     *,
     params: dict[str, str | int],
@@ -202,10 +304,11 @@ def _get_json(
     client: httpx.Client | None,
 ) -> dict[str, object]:
     owns_client = client is None
-    http_client = client or httpx.Client(timeout=20.0)
+    http_client = client or httpx.Client(timeout=30.0)
     try:
         try:
-            response = http_client.get(
+            response = http_client.request(
+                method,
                 url,
                 params=params,
                 auth=httpx.BasicAuth(config.account_sid, config.auth_token),
@@ -270,7 +373,10 @@ def _parse_ad(item: dict[str, object]) -> ImpactAd:
 
 
 def _parse_public_terms(item: dict[str, object]) -> ImpactPublicTerms:
-    payout_terms_raw = _as_list_with_keys(item.get("PayoutTermsList"), ("PayoutTerm", "PayoutTerms"))
+    payout_terms_raw = _as_list_with_keys(
+        item.get("PayoutTermsList"),
+        ("PayoutTerm", "PayoutTerms"),
+    )
     return ImpactPublicTerms(
         id=_string(item.get("Id")),
         name=_string(item.get("Name")),
@@ -300,11 +406,39 @@ def _parse_payout_term(item: dict[str, object]) -> ImpactPayoutTerm:
     )
 
 
+def _parse_action(item: dict[str, object]) -> ImpactAction:
+    action_id = _string(item.get("Id"))
+    if not action_id:
+        raise ImpactAPIError("Impact action did not include Id.")
+    return ImpactAction(
+        id=action_id,
+        campaign_id=_string(item.get("CampaignId")),
+        campaign_name=_string(item.get("CampaignName")),
+        action_tracker_id=_string(item.get("ActionTrackerId")),
+        action_tracker_name=_string(item.get("ActionTrackerName")),
+        state=_string(item.get("State")),
+        payout=_float_value(item.get("Payout")),
+        amount=_float_value(item.get("Amount")),
+        currency=(_string(item.get("Currency")) or "USD").upper(),
+        event_date=_string(item.get("EventDate")),
+        creation_date=_string(item.get("CreationDate")),
+        locking_date=_string(item.get("LockingDate")),
+        cleared_date=_string(item.get("ClearedDate")),
+        oid=_string(item.get("Oid")),
+        sub_id1=_string(item.get("SubId1")),
+        sub_id2=_string(item.get("SubId2")),
+        sub_id3=_string(item.get("SubId3")),
+        shared_id=_string(item.get("SharedId")),
+        ad_id=_string(item.get("AdId")),
+        referring_domain=_string(item.get("ReferringDomain")),
+    )
+
+
 def _as_list(value: object) -> list[object]:
     if isinstance(value, list):
         return value
     if isinstance(value, dict):
-        for key in ("Campaign", "Ad"):
+        for key in ("Campaign", "Ad", "Action"):
             nested = value.get(key)
             if isinstance(nested, list):
                 return nested
@@ -323,7 +457,7 @@ def _as_list_with_keys(value: object, keys: tuple[str, ...]) -> list[object]:
                 return nested
             if isinstance(nested, dict):
                 return [nested]
-        if any(key in value for key in ("TrackerName", "TrackerType")):
+        if any(key in value for key in ("TrackerName", "TrackerType", "Id", "State")):
             return [value]
     return []
 
@@ -373,5 +507,10 @@ def _optional_float(value: object) -> float | None:
         return None
 
 
+def _float_value(value: object) -> float:
+    return _optional_float(value) or 0.0
+
+
 def _int_meta(payload: dict[str, object], key: str, fallback: int) -> int:
-    return _optional_int(payload.get(key)) or fallback
+    value = _optional_int(payload.get(key))
+    return fallback if value is None else value

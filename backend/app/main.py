@@ -18,6 +18,7 @@ from app.models import (
     OpportunityResult,
 )
 from app.services import campaign_workspace as workspace
+from app.services import network_sync as sync_service
 from app.services.content_agent import build_campaign
 from app.services.forecast import forecast_revenue
 from app.services.opportunity_aggregator import (
@@ -27,7 +28,7 @@ from app.services.opportunity_aggregator import (
 )
 from app.services.opportunity_scorer import score_opportunity
 
-app = FastAPI(title="Affiliate AI Agent", version="0.5.0")
+app = FastAPI(title="Affiliate AI Agent", version="0.6.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -45,6 +46,16 @@ def health() -> dict[str, str]:
 @app.get("/api/v1/connectors/cj/status")
 def get_cj_status() -> dict[str, str | bool]:
     connector = cj.status()
+    return {
+        "name": connector.name,
+        "configured": connector.configured,
+        "note": connector.note,
+    }
+
+
+@app.get("/api/v1/connectors/cj/commissions/status")
+def get_cj_commission_status() -> dict[str, str | bool]:
+    connector = cj.commission_status()
     return {
         "name": connector.name,
         "configured": connector.configured,
@@ -299,6 +310,90 @@ def patch_workspace_conversion(
         return workspace.update_conversion(conversion_id, data)
     except workspace.WorkspaceNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.put(
+    "/api/v1/workspace/campaigns/{campaign_id}/binding",
+    response_model=sync_service.CampaignBinding,
+)
+def put_campaign_binding(
+    campaign_id: str,
+    data: sync_service.CampaignBindingRequest,
+) -> sync_service.CampaignBinding:
+    try:
+        return sync_service.bind_campaign(campaign_id, data)
+    except sync_service.SyncNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except sync_service.SyncConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@app.get(
+    "/api/v1/workspace/campaigns/{campaign_id}/binding",
+    response_model=sync_service.CampaignBinding,
+)
+def get_campaign_binding(campaign_id: str) -> sync_service.CampaignBinding:
+    try:
+        return sync_service.get_binding(campaign_id)
+    except sync_service.SyncNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post(
+    "/api/v1/workspace/campaigns/{campaign_id}/impact-tracking-link",
+    response_model=sync_service.ImpactTrackingLinkResult,
+)
+def create_impact_tracking_link(
+    campaign_id: str,
+    data: sync_service.ImpactTrackingLinkRequest,
+) -> sync_service.ImpactTrackingLinkResult:
+    try:
+        return sync_service.create_tagged_impact_link(campaign_id, data)
+    except sync_service.SyncNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except sync_service.SyncConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except impact.ImpactConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except impact.ImpactAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/workspace/sync", response_model=sync_service.SyncResponse)
+def sync_workspace(data: sync_service.SyncRequest) -> sync_service.SyncResponse:
+    return sync_service.sync_networks(data)
+
+
+@app.get(
+    "/api/v1/workspace/unmatched",
+    response_model=list[sync_service.NetworkEventRecord],
+)
+def get_unmatched_events(
+    limit: int = Query(default=100, ge=1, le=500),
+) -> list[sync_service.NetworkEventRecord]:
+    return sync_service.list_unmatched_events(limit)
+
+
+@app.post(
+    "/api/v1/workspace/network-events/{event_id}/assign/{campaign_id}",
+    response_model=sync_service.NetworkEventRecord,
+)
+def assign_network_event(
+    event_id: str,
+    campaign_id: str,
+) -> sync_service.NetworkEventRecord:
+    try:
+        return sync_service.assign_event(event_id, campaign_id)
+    except sync_service.SyncNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get(
+    "/api/v1/workspace/sync/status",
+    response_model=list[sync_service.SyncStateRecord],
+)
+def get_sync_status() -> list[sync_service.SyncStateRecord]:
+    return sync_service.list_sync_state()
 
 
 @app.get("/go/{slug}", include_in_schema=False)
