@@ -86,10 +86,7 @@ def analyze_portfolio(settings: AdvisorSettings | None = None) -> AdvisorRespons
 
     campaigns = workspace.list_campaigns()
     peer_medians = _peer_medians(campaigns, resolved.min_sample_clicks)
-    recommendations = [
-        _recommend(detail, resolved, peer_medians)
-        for detail in campaigns
-    ]
+    recommendations = [_recommend(detail, resolved, peer_medians) for detail in campaigns]
     recommendations.sort(
         key=lambda item: (
             item.priority,
@@ -214,8 +211,10 @@ def _recommend(
             confidence=min(confidence, 0.49),
             peer_epc=peer_epc,
             reasons=[
-                f"Only {clicks} human clicks are recorded; the minimum sample is "
-                f"{settings.min_sample_clicks}.",
+                (
+                    f"Only {clicks} human clicks are recorded; the minimum sample is "
+                    f"{settings.min_sample_clicks}."
+                ),
                 "Calling a winner or loser this early would be unstable.",
             ],
             next_actions=[
@@ -334,10 +333,14 @@ def _recommend(
             confidence=confidence,
             peer_epc=peer_epc,
             reasons=[
-                f"Conversion rate is {metrics.conversion_rate * 100:.2f}%, at or above the "
-                f"{settings.healthy_conversion_rate * 100:.2f}% healthy-test threshold.",
-                f"There are {approved} approved conversions, so the signal is repeatable enough "
-                "for a larger test.",
+                (
+                    f"Conversion rate is {metrics.conversion_rate * 100:.2f}%, at or above the "
+                    f"{settings.healthy_conversion_rate * 100:.2f}% healthy-test threshold."
+                ),
+                (
+                    f"There are {approved} approved conversions, so the signal is repeatable "
+                    "enough for a larger test."
+                ),
             ],
             next_actions=[
                 "Send another 50-100 qualified clicks before calling it a durable winner.",
@@ -358,8 +361,10 @@ def _recommend(
             confidence=confidence,
             peer_epc=peer_epc,
             reasons=[
-                f"Conversion rate is {metrics.conversion_rate * 100:.2f}%, below the "
-                f"{settings.low_conversion_rate * 100:.2f}% low-performance threshold.",
+                (
+                    f"Conversion rate is {metrics.conversion_rate * 100:.2f}%, below the "
+                    f"{settings.low_conversion_rate * 100:.2f}% low-performance threshold."
+                ),
                 f"The campaign has {clicks} human clicks, enough for a meaningful warning.",
             ],
             next_actions=[
