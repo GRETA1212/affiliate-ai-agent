@@ -2,16 +2,16 @@
 
 AI-assisted affiliate opportunity research, public editorial content, campaign tracking, CJ/Impact commission sync, real revenue measurement, and evidence-based campaign recommendations.
 
-## Current system — V0.8
+## Current system — V0.9
 
-V0.8 adds the public traffic layer to the V0.7 research/tracking engine.
+V0.9 turns the V0.8 public-site foundation into a fact-checked commercial-content layer while keeping the V0.7 tracking/revenue engine intact.
 
 ```text
 Search / social / direct traffic
             ↓
       website/ public site
             ↓
-    helpful guide / comparison
+ fact-checked buyer guide/comparison
             ↓
   public /go/{campaign} redirect
             ↓
@@ -28,36 +28,33 @@ Search / social / direct traffic
  scale / test / optimize / pause
 ```
 
-The repository now has three distinct applications:
+The repository has three distinct applications:
 
 - `website/` — public, SEO-oriented editorial site;
 - `frontend/` — private research, campaign and performance dashboard;
 - `backend/` — opportunity research, tracking redirects, CJ/Impact sync, SQLite revenue and performance advisor.
 
-## Public website — V0.8
+## Public website — V0.9
 
-The new static public site is designed to be deployable before affiliate-account approval. It includes:
+The static site now includes five named, fact-checked commercial guides in addition to the category/legal foundation:
 
-- homepage;
-- Best AI Tools buyer guide;
-- AI App Builders category guide;
-- AI Voice category guide;
-- AI Marketing category guide;
-- comparisons hub;
-- tutorials hub;
-- About + editorial methodology;
-- Contact;
-- Affiliate Disclosure;
-- Privacy Policy starter;
-- Terms of Use starter;
-- canonical metadata;
-- Open Graph metadata;
-- Schema.org structured data;
-- `sitemap.xml`;
-- `robots.txt`;
-- responsive mobile layout.
+- `/comparisons/lovable-vs-hostinger-horizons/`
+- `/ai-app-builders/lovable-buyer-guide/`
+- `/ai-voice/elevenlabs-buyer-guide/`
+- `/ai-marketing/semrush-ai-visibility-buyer-guide/`
+- `/best-ai-tools/small-business-2026/`
 
-The starter content deliberately avoids fake hands-on claims, fabricated reviews and fake earnings. Named rankings should only be added after current product facts and commercial terms are checked.
+The Best AI Tools, App Builders, AI Voice, AI Marketing and Comparisons indexes now surface these guides directly.
+
+Commercial-content safeguards:
+
+- visible **11 August 2026** fact-check date;
+- official vendor sources linked on every named guide;
+- source/claim register in `website/FACT_CHECK.md`;
+- no invented hands-on testing, testimonials, affiliate approval or earnings;
+- pricing language distinguishes current/promotional page values from permanent guarantees;
+- affiliate economics are explicitly separated from product-quality judgments;
+- direct official product links are used until an approved affiliate link exists.
 
 Build the public site:
 
@@ -87,7 +84,7 @@ SITE_URL=https://www.yourdomain.com
 CONTACT_EMAIL=hello@yourdomain.com
 ```
 
-See `website/README.md` for the deployment and affiliate-link workflow.
+See `website/README.md` for deployment and affiliate-link workflow details.
 
 ## Measurable affiliate loop
 
@@ -194,16 +191,18 @@ GitHub Actions validates all three layers:
 - backend pytest;
 - private React dashboard production build;
 - public website static build;
-- generated homepage, sitemap and affiliate-disclosure page.
+- homepage, sitemap and affiliate-disclosure page;
+- all five named commercial guides;
+- fact-check date rendered into the comparison output.
 
 ## Next roadmap
 
-1. Choose and connect the final domain.
-2. Deploy `website/dist/` publicly.
-3. Deploy the backend on a public HTTPS tracking subdomain.
-4. Publish several evidence-based named product comparisons using current official facts.
-5. Apply to affiliate networks/programs using the live editorial site.
-6. Replace approved campaign links with `/go/{slug}` tracking URLs.
+1. Choose a final brand/domain and deploy `website/dist/` publicly.
+2. Deploy the backend on a public HTTPS tracking subdomain.
+3. Add 5–10 more evidence-based articles around the strongest buyer-intent clusters.
+4. Apply to appropriate affiliate programs using the live editorial property.
+5. Replace direct product CTAs with approved `/go/{slug}` campaign links and `rel="sponsored"` disclosure.
+6. Add automated fact-refresh checks for prices/program terms that flag stale articles before publication.
 7. Add scheduled server-side CJ/Impact sync with retry/backoff and sync history.
 8. Add Search Console + GA4 or privacy-conscious traffic analytics.
 9. Persist recommendation snapshots to show performance changes over time.
