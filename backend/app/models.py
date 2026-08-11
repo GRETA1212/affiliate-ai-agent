@@ -2,7 +2,6 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-
 Score = Annotated[float, Field(ge=0, le=100)]
 
 
