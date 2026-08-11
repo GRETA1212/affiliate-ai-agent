@@ -48,3 +48,9 @@ jobs:
       - run: test -f dist/index.html
       - run: test -f dist/sitemap.xml
       - run: test -f dist/affiliate-disclosure/index.html
+      - run: test -f dist/comparisons/lovable-vs-hostinger-horizons/index.html
+      - run: test -f dist/ai-app-builders/lovable-buyer-guide/index.html
+      - run: test -f dist/ai-voice/elevenlabs-buyer-guide/index.html
+      - run: test -f dist/ai-marketing/semrush-ai-visibility-buyer-guide/index.html
+      - run: test -f dist/best-ai-tools/small-business-2026/index.html
+      - run: grep -q "11 August 2026" dist/comparisons/lovable-vs-hostinger-horizons/index.html
