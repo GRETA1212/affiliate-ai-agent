@@ -172,10 +172,19 @@ def profit_summary() -> ProfitSummary:
     finally:
         connection.close()
 
-    revenue = {str(row["currency"]): round(float(row["amount"] or 0), 2) for row in revenue_rows}
-    expenses = {str(row["currency"]): round(float(row["amount"] or 0), 2) for row in expense_rows}
+    revenue = {
+        str(row["currency"]): round(float(row["amount"] or 0), 2)
+        for row in revenue_rows
+    }
+    expenses = {
+        str(row["currency"]): round(float(row["amount"] or 0), 2)
+        for row in expense_rows
+    }
     currencies = set(revenue) | set(expenses)
-    profit = {code: round(revenue.get(code, 0.0) - expenses.get(code, 0.0), 2) for code in currencies}
+    profit = {
+        code: round(revenue.get(code, 0.0) - expenses.get(code, 0.0), 2)
+        for code in currencies
+    }
     return ProfitSummary(
         approved_revenue_by_currency=revenue,
         expenses_by_currency=expenses,
@@ -192,7 +201,8 @@ def enqueue_content_job(data: ContentJobCreate) -> str:
         connection.execute(
             """
             INSERT INTO content_jobs (
-                id, campaign_id, job_type, title, brief_json, status, priority, created_at, updated_at
+                id, campaign_id, job_type, title, brief_json, status, priority,
+                created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?, ?)
             """,
             (
@@ -263,7 +273,11 @@ def fail_job(job_id: str, error: str) -> None:
     connection = connect()
     try:
         cursor = connection.execute(
-            "UPDATE content_jobs SET status = 'failed', error = ?, updated_at = ? WHERE id = ?",
+            """
+            UPDATE content_jobs
+            SET status = 'failed', error = ?, updated_at = ?
+            WHERE id = ?
+            """,
             (error[:2000], _now(), job_id),
         )
         if cursor.rowcount == 0:
@@ -316,7 +330,8 @@ def create_experiment(data: ExperimentCreate) -> str:
         connection.execute(
             """
             INSERT INTO experiments (
-                id, campaign_id, name, variant_a, variant_b, metric, status, created_at, updated_at
+                id, campaign_id, name, variant_a, variant_b, metric, status,
+                created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, 'running', ?, ?)
             """,
             (
@@ -336,7 +351,11 @@ def create_experiment(data: ExperimentCreate) -> str:
         connection.close()
 
 
-def record_experiment_observation(experiment_id: str, variant: Literal["a", "b"], converted: bool) -> None:
+def record_experiment_observation(
+    experiment_id: str,
+    variant: Literal["a", "b"],
+    converted: bool,
+) -> None:
     ensure_business_schema()
     impression_col = f"{variant}_impressions"
     conversion_col = f"{variant}_conversions"
@@ -359,20 +378,40 @@ def record_experiment_observation(experiment_id: str, variant: Literal["a", "b"]
         connection.close()
 
 
-def finish_experiment(experiment_id: str, minimum_impressions_per_variant: int = 50) -> str:
+def finish_experiment(
+    experiment_id: str,
+    minimum_impressions_per_variant: int = 50,
+) -> str:
     ensure_business_schema()
     connection = connect()
     try:
-        row = connection.execute("SELECT * FROM experiments WHERE id = ?", (experiment_id,)).fetchone()
+        row = connection.execute(
+            "SELECT * FROM experiments WHERE id = ?", (experiment_id,)
+        ).fetchone()
         if row is None:
             raise ValueError("Experiment not found.")
-        if row["a_impressions"] < minimum_impressions_per_variant or row["b_impressions"] < minimum_impressions_per_variant:
+        if (
+            row["a_impressions"] < minimum_impressions_per_variant
+            or row["b_impressions"] < minimum_impressions_per_variant
+        ):
             raise ValueError("Not enough observations to finish experiment.")
-        a_rate = row["a_conversions"] / row["a_impressions"] if row["a_impressions"] else 0.0
-        b_rate = row["b_conversions"] / row["b_impressions"] if row["b_impressions"] else 0.0
+        a_rate = (
+            row["a_conversions"] / row["a_impressions"]
+            if row["a_impressions"]
+            else 0.0
+        )
+        b_rate = (
+            row["b_conversions"] / row["b_impressions"]
+            if row["b_impressions"]
+            else 0.0
+        )
         winner = "a" if a_rate > b_rate else "b" if b_rate > a_rate else "tie"
         connection.execute(
-            "UPDATE experiments SET status = 'completed', winner = ?, updated_at = ? WHERE id = ?",
+            """
+            UPDATE experiments
+            SET status = 'completed', winner = ?, updated_at = ?
+            WHERE id = ?
+            """,
             (winner, _now(), experiment_id),
         )
         connection.commit()
@@ -408,7 +447,10 @@ def next_actions(limit: int = 10) -> list[NextAction]:
         connection.close()
 
     conversion_map = {
-        row["campaign_id"]: (int(row["conversions"] or 0), float(row["revenue"] or 0))
+        row["campaign_id"]: (
+            int(row["conversions"] or 0),
+            float(row["revenue"] or 0),
+        )
         for row in conversions
     }
     actions: list[NextAction] = []
@@ -418,40 +460,65 @@ def next_actions(limit: int = 10) -> list[NextAction]:
         score = float(row["opportunity_score"] or 0)
 
         if row["status"] == "draft":
-            actions.append(NextAction(
-                campaign_id=row["id"],
-                priority=min(100, int(70 + score * 0.3)),
-                action="prepare-launch",
-                reason="High-potential draft campaign needs approved tracking link, disclosure and publication.",
-            ))
+            actions.append(
+                NextAction(
+                    campaign_id=row["id"],
+                    priority=min(100, int(70 + score * 0.3)),
+                    action="prepare-launch",
+                    reason=(
+                        "High-potential draft campaign needs approved tracking link, "
+                        "disclosure and publication."
+                    ),
+                )
+            )
         elif clicks < 50:
-            actions.append(NextAction(
-                campaign_id=row["id"],
-                priority=75,
-                action="collect-qualified-traffic",
-                reason=f"Only {clicks} human clicks; there is not enough evidence to optimize safely.",
-            ))
+            actions.append(
+                NextAction(
+                    campaign_id=row["id"],
+                    priority=75,
+                    action="collect-qualified-traffic",
+                    reason=(
+                        f"Only {clicks} human clicks; there is not enough evidence "
+                        "to optimize safely."
+                    ),
+                )
+            )
         elif conversions_count == 0 and clicks >= 150:
-            actions.append(NextAction(
-                campaign_id=row["id"],
-                priority=95,
-                action="pause-and-rework",
-                reason=f"{clicks} human clicks with no approved conversion; rework intent, offer or CTA before scaling.",
-            ))
+            actions.append(
+                NextAction(
+                    campaign_id=row["id"],
+                    priority=95,
+                    action="pause-and-rework",
+                    reason=(
+                        f"{clicks} human clicks with no approved conversion; rework "
+                        "intent, offer or CTA before scaling."
+                    ),
+                )
+            )
         elif conversions_count == 0:
-            actions.append(NextAction(
-                campaign_id=row["id"],
-                priority=85,
-                action="run-content-or-cta-experiment",
-                reason=f"{clicks} human clicks without a conversion; test one controlled variable.",
-            ))
+            actions.append(
+                NextAction(
+                    campaign_id=row["id"],
+                    priority=85,
+                    action="run-content-or-cta-experiment",
+                    reason=(
+                        f"{clicks} human clicks without a conversion; test one "
+                        "controlled variable."
+                    ),
+                )
+            )
         elif revenue > 0:
-            actions.append(NextAction(
-                campaign_id=row["id"],
-                priority=90,
-                action="scale-proven-campaign",
-                reason=f"Campaign has {conversions_count} approved conversion(s) and recorded commission revenue.",
-            ))
+            actions.append(
+                NextAction(
+                    campaign_id=row["id"],
+                    priority=90,
+                    action="scale-proven-campaign",
+                    reason=(
+                        f"Campaign has {conversions_count} approved conversion(s) "
+                        "and recorded commission revenue."
+                    ),
+                )
+            )
 
     actions.sort(key=lambda item: item.priority, reverse=True)
     return actions[:limit]
