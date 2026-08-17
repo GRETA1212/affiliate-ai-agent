@@ -1,0 +1,20 @@
+[project]
+name = "affiliate-intelligence-engine"
+version = "0.1.0"
+description = "Affiliate opportunity discovery, scoring, persistence, and campaign intelligence."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+affiliate-intel = "affiliate_intel.cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
