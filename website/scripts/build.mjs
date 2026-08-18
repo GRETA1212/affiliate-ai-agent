@@ -2,6 +2,7 @@ import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { applyAffiliateTracking } from "../src/affiliate-tracking.mjs";
 import { commercialPages } from "../src/commercial-pages.mjs";
 import { launchPages } from "../src/launch-pages.mjs";
 import { pages, renderPage, siteUrl } from "../src/site.mjs";
@@ -11,11 +12,12 @@ const root = join(here, "..");
 const dist = join(root, "dist");
 
 // Later page layers override earlier generic/index content while preserving path order.
+// Affiliate tracking is applied only after the final page version is selected.
 const resolvedPages = [
   ...new Map(
     [...pages, ...commercialPages, ...launchPages].map((page) => [page.path, page]),
   ).values(),
-];
+].map(applyAffiliateTracking);
 
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
