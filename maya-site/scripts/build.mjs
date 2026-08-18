@@ -18,8 +18,13 @@ for (const page of pages) {
 }
 
 await cp(join(root, "src", "styles.css"), join(dist, "styles.css"));
+await cp(join(root, "static"), dist, { recursive: true });
 
-const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((page) => `  <url><loc>${siteUrl}${page.path}</loc></url>`).join("\n")}\n</urlset>\n`;
+const extraSitemapPaths = [
+  "/shop-the-look/ai-picked-makeup/",
+];
+const sitemapPaths = [...pages.map((page) => page.path), ...extraSitemapPaths];
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapPaths.map((path) => `  <url><loc>${siteUrl}${path}</loc></url>`).join("\n")}\n</urlset>\n`;
 await writeFile(join(dist, "sitemap.xml"), sitemap, "utf8");
 await writeFile(join(dist, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`, "utf8");
 
@@ -27,4 +32,4 @@ if (siteUrl.includes("example.invalid")) {
   console.warn("Maya.exe built with placeholder MAYA_SITE_URL. Set it before production deployment.");
 }
 
-console.log(`Built ${pages.length} Maya.exe pages into ${dist}`);
+console.log(`Built ${pages.length + extraSitemapPaths.length} Maya.exe pages into ${dist}`);
