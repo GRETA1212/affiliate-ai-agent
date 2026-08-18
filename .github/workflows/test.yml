@@ -49,8 +49,16 @@ jobs:
       - run: test -f dist/sitemap.xml
       - run: test -f dist/affiliate-disclosure/index.html
       - run: test -f dist/comparisons/lovable-vs-hostinger-horizons/index.html
+      - run: test -f dist/ai-app-builders/hostinger-horizons-buyer-guide/index.html
       - run: test -f dist/ai-app-builders/lovable-buyer-guide/index.html
       - run: test -f dist/ai-voice/elevenlabs-buyer-guide/index.html
       - run: test -f dist/ai-marketing/semrush-ai-visibility-buyer-guide/index.html
       - run: test -f dist/best-ai-tools/small-business-2026/index.html
-      - run: grep -q "11 August 2026" dist/comparisons/lovable-vs-hostinger-horizons/index.html
+      - run: grep -q "18 August 2026" dist/ai-app-builders/hostinger-horizons-buyer-guide/index.html
+      - name: Build with Hostinger affiliate tracking enabled
+        run: npm run build
+        env:
+          HOSTINGER_HORIZONS_AFFILIATE_ENABLED: "1"
+          AFFILIATE_TRACKING_BASE_URL: "https://go.example.test"
+      - run: grep -q "https://go.example.test/go/hostinger-horizons?source=website&amp;medium=affiliate&amp;content=hostinger-horizons-buyer-guide" dist/ai-app-builders/hostinger-horizons-buyer-guide/index.html
+      - run: grep -q 'rel="sponsored nofollow noopener noreferrer"' dist/ai-app-builders/hostinger-horizons-buyer-guide/index.html
