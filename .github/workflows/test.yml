@@ -88,7 +88,10 @@ jobs:
       - run: test -f dist/about/index.html
       - run: test -f dist/contact/index.html
       - run: test -f dist/affiliate-disclosure/index.html
+      - run: test -f dist/shop-the-look/ai-picked-makeup/index.html
       - run: grep -q "Maya is a virtual AI creator" dist/affiliate-disclosure/index.html
+      - run: grep -q "Look direction, not a fake product test" dist/shop-the-look/ai-picked-makeup/index.html
+      - run: grep -q "/shop-the-look/ai-picked-makeup/" dist/sitemap.xml
       - name: Build with a real-style TikTok Shop affiliate URL
         run: npm run build
         env:
