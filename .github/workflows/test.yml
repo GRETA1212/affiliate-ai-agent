@@ -2,7 +2,7 @@ name: test
 
 on:
   push:
-    branches: [main, agent/mvp]
+    branches: [main, agent/mvp, agent/maya-exe]
   pull_request:
 
 jobs:
@@ -62,3 +62,37 @@ jobs:
           AFFILIATE_TRACKING_BASE_URL: "https://go.example.test"
       - run: grep -q "https://go.example.test/go/hostinger-horizons?source=website&amp;medium=affiliate&amp;content=hostinger-horizons-buyer-guide" dist/ai-app-builders/hostinger-horizons-buyer-guide/index.html
       - run: grep -q 'rel="sponsored nofollow noopener noreferrer"' dist/ai-app-builders/hostinger-horizons-buyer-guide/index.html
+
+  maya-site:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: maya-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm run build
+        env:
+          MAYA_SITE_URL: "https://maya.example.test"
+      - run: test -f dist/index.html
+      - run: test -f dist/videos/index.html
+      - run: test -f dist/reviews/index.html
+      - run: test -f dist/ai-beauty-tools/index.html
+      - run: test -f dist/beauty-tech/index.html
+      - run: test -f dist/guides/index.html
+      - run: test -f dist/templates/index.html
+      - run: test -f dist/deals/index.html
+      - run: test -f dist/tiktok-shop/index.html
+      - run: test -f dist/about/index.html
+      - run: test -f dist/contact/index.html
+      - run: test -f dist/affiliate-disclosure/index.html
+      - run: grep -q "Maya is a virtual AI creator" dist/affiliate-disclosure/index.html
+      - name: Build with a real-style TikTok Shop affiliate URL
+        run: npm run build
+        env:
+          MAYA_SITE_URL: "https://maya.example.test"
+          TIKTOK_SHOP_LED_MASK_URL: "https://shop.example.test/product/led-mask?affiliate=maya"
+      - run: grep -q "https://shop.example.test/product/led-mask?affiliate=maya" dist/tiktok-shop/index.html
+      - run: grep -q 'rel="sponsored nofollow noopener noreferrer"' dist/tiktok-shop/index.html
