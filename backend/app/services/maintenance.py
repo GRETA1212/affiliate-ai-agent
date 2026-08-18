@@ -1,5 +1,5 @@
 import os
-from datetime import date
+from datetime import UTC, date, datetime
 
 from pydantic import BaseModel
 
@@ -21,7 +21,7 @@ class MaintenanceReport(BaseModel):
 
 
 def stale_verified_programs(max_age_days: int = 14) -> list[StaleProgram]:
-    today = date.today()
+    today = datetime.now(UTC).date()
     stale: list[StaleProgram] = []
     for program in VERIFIED_PROGRAMS:
         age = (today - program.verified_at).days
