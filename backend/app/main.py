@@ -17,6 +17,8 @@ from app.models import (
     OfferSignals,
     OpportunityResult,
 )
+from app.services import automation_loop as automation
+from app.services import business_controller as business
 from app.services import campaign_workspace as workspace
 from app.services import network_sync as sync_service
 from app.services import performance_advisor as advisor
@@ -29,7 +31,7 @@ from app.services.opportunity_aggregator import (
 )
 from app.services.opportunity_scorer import score_opportunity
 
-app = FastAPI(title="Affiliate AI Agent", version="0.7.0")
+app = FastAPI(title="Affiliate AI Agent", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -418,6 +420,72 @@ def performance_recommendations(
         loser_epc_multiplier=loser_epc_multiplier,
     )
     return advisor.analyze_portfolio(settings)
+
+
+@app.get("/api/v1/business/profit", response_model=business.ProfitSummary)
+def business_profit() -> business.ProfitSummary:
+    return business.profit_summary()
+
+
+@app.post("/api/v1/business/expenses", status_code=201)
+def create_business_expense(data: business.ExpenseCreate) -> dict[str, str]:
+    try:
+        return {"id": business.record_expense(data)}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/business/next-actions", response_model=list[business.NextAction])
+def business_next_actions(limit: int = Query(default=10, ge=1, le=100)) -> list[business.NextAction]:
+    return business.next_actions(limit=limit)
+
+
+@app.post("/api/v1/business/plan", response_model=automation.AutomationRun)
+def business_plan(limit: int = Query(default=10, ge=1, le=100)) -> automation.AutomationRun:
+    return automation.plan_work(limit=limit)
+
+
+@app.post("/api/v1/business/jobs", status_code=201)
+def create_business_job(data: business.ContentJobCreate) -> dict[str, str]:
+    return {"id": business.enqueue_content_job(data)}
+
+
+@app.post("/api/v1/business/jobs/claim")
+def claim_business_job() -> dict | None:
+    return business.claim_next_job()
+
+
+@app.post("/api/v1/business/experiments", status_code=201)
+def create_business_experiment(data: business.ExperimentCreate) -> dict[str, str]:
+    try:
+        return {"id": business.create_experiment(data)}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/business/experiments/{experiment_id}/observe")
+def observe_business_experiment(
+    experiment_id: str,
+    variant: str = Query(pattern="^[ab]$"),
+    converted: bool = Query(default=False),
+) -> dict[str, str]:
+    try:
+        business.record_experiment_observation(experiment_id, variant, converted)  # type: ignore[arg-type]
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"status": "recorded"}
+
+
+@app.post("/api/v1/business/experiments/{experiment_id}/finish")
+def finish_business_experiment(
+    experiment_id: str,
+    minimum_impressions_per_variant: int = Query(default=50, ge=10, le=100000),
+) -> dict[str, str]:
+    try:
+        winner = business.finish_experiment(experiment_id, minimum_impressions_per_variant)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"winner": winner}
 
 
 @app.get("/go/{slug}", include_in_schema=False)
