@@ -11,12 +11,20 @@ def main() -> None:
 
     if not affiliate_url:
         raise SystemExit(
-            "HOSTINGER_HORIZONS_AFFILIATE_URL is required. Use the approved Hostinger affiliate URL, not a generic product URL."
+            "HOSTINGER_HORIZONS_AFFILIATE_URL is required. "
+            "Use the approved Hostinger affiliate URL, not a generic product URL."
         )
 
     existing = next(
         (item for item in workspace.list_campaigns() if item.campaign.slug == SLUG),
         None,
+    )
+
+    audience = (
+        "People comparing AI app builders and no-code/AI-assisted app creation tools"
+    )
+    problem = (
+        "Choose and launch an AI-built web app with an integrated hosting workflow"
     )
 
     if existing:
@@ -26,8 +34,8 @@ def main() -> None:
                 affiliate_url=affiliate_url,
                 status="active",
                 name="Hostinger Horizons",
-                audience="People comparing AI app builders and no-code/AI-assisted app creation tools",
-                problem="Choose and launch an AI-built web app with an integrated hosting workflow",
+                audience=audience,
+                problem=problem,
             ),
         )
         action = "updated"
@@ -36,8 +44,8 @@ def main() -> None:
             workspace.CampaignCreate(
                 name="Hostinger Horizons",
                 product_name="Hostinger Horizons",
-                audience="People comparing AI app builders and no-code/AI-assisted app creation tools",
-                problem="Choose and launch an AI-built web app with an integrated hosting workflow",
+                audience=audience,
+                problem=problem,
                 affiliate_url=affiliate_url,
                 slug=SLUG,
                 status="active",
