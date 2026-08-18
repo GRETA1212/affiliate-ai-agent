@@ -8,7 +8,12 @@ from app.services.business_controller import (
     ExpenseCreate,
     ExperimentCreate,
 )
-from app.services.campaign_workspace import CampaignCreate, ConversionCreate, add_conversion, create_campaign
+from app.services.campaign_workspace import (
+    CampaignCreate,
+    ConversionCreate,
+    add_conversion,
+    create_campaign,
+)
 
 
 @pytest.fixture(autouse=True)
