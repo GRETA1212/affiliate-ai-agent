@@ -1,8 +1,40 @@
 import os
+from urllib.parse import urlparse
 
 from app.services import campaign_workspace as workspace
 
 SLUG = "hostinger-horizons"
+
+
+def _validate_affiliate_url(value: str) -> None:
+    parsed = urlparse(value)
+    host = parsed.netloc.lower()
+    query = parsed.query.lower()
+    path = parsed.path.lower()
+
+    if parsed.scheme not in {"http", "https"} or not host:
+        raise SystemExit("HOSTINGER_HORIZONS_AFFILIATE_URL must be a valid public URL.")
+
+    if "referralcode=" in query:
+        raise SystemExit(
+            "Referral-code links are not accepted for this public affiliate campaign. "
+            "Use the approved Hostinger affiliate tracking link."
+        )
+
+    if host == "hpanel.hostinger.com":
+        raise SystemExit("hPanel URLs are private account/session URLs and cannot be used as affiliate links.")
+
+    if host == "horizons.hostinger.com" and path.strip("/"):
+        raise SystemExit(
+            "A Horizons project URL was detected. Use the affiliate dashboard tracking link, "
+            "not a private project/onboarding URL."
+        )
+
+    if "hostinger" not in host:
+        raise SystemExit(
+            "The Hostinger campaign expects an approved Hostinger tracking URL. "
+            "If Hostinger supplies a third-party tracking domain, review and allow it explicitly first."
+        )
 
 
 def main() -> None:
@@ -14,6 +46,8 @@ def main() -> None:
             "HOSTINGER_HORIZONS_AFFILIATE_URL is required. "
             "Use the approved Hostinger affiliate URL, not a generic product URL."
         )
+
+    _validate_affiliate_url(affiliate_url)
 
     existing = next(
         (item for item in workspace.list_campaigns() if item.campaign.slug == SLUG),
