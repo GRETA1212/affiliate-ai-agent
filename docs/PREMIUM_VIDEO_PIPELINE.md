@@ -28,9 +28,9 @@ human approval
 
 ## Asset folders
 
-Set `MEDIA_ASSET_DIR` or use the default `backend/assets/media`-relative working path.
+Set `MEDIA_ASSET_DIR` or use the default `assets/media` path from the backend working directory.
 
-For a campaign slug, add real product assets here:
+Real product assets:
 
 ```text
 assets/media/products/<campaign-slug>/
@@ -39,7 +39,7 @@ assets/media/products/<campaign-slug>/
   03-feature-screen.mp4
 ```
 
-Approved generated clips go here:
+Approved generated clips:
 
 ```text
 assets/media/generated/<campaign-slug>/
@@ -48,59 +48,66 @@ assets/media/generated/<campaign-slug>/
   03-transition.mp4
 ```
 
-The renderer uses files in deterministic filename order.
-
-Supported visual files:
-
-- MP4, MOV, M4V, WebM
-- JPG, JPEG, PNG, WebP
+Supported visual files: MP4, MOV, M4V, WebM, JPG, JPEG, PNG and WebP.
 
 ## Veo 3.1 B-roll worker
 
-`app/services/ai_video_provider.py` provides the first real external high-realism worker. It uses the Gemini API long-running video-generation flow, requests portrait `9:16` clips, downloads completed MP4 files, and writes them into the same `generated/<campaign-slug>/` asset contract used by the premium renderer.
+`app/services/ai_video_provider.py` implements the first external high-realism worker. It uses the Gemini API long-running video-generation flow, requests portrait `9:16` clips, polls the operation, downloads the completed MP4, and writes it into the same generated-assets contract used by the premium renderer.
 
-The provider is deliberately disabled by default because video generation may incur external charges. To enable it explicitly:
+The provider is disabled by default because generation may incur external charges:
+
+```text
+AI_VIDEO_PROVIDER=disabled
+GEMINI_API_KEY=
+```
+
+Explicitly enable it only when billable generation is intended:
 
 ```text
 AI_VIDEO_PROVIDER=veo
-GEMINI_API_KEY=<your private key>
+GEMINI_API_KEY=<private key>
 VEO_MODEL=veo-3.1-fast-generate-preview
 VEO_MAX_CLIPS=2
+VEO_POLL_SECONDS=10
+VEO_TIMEOUT_SECONDS=420
 ```
 
-When `AI_VIDEO_PROVIDER=disabled` or `GEMINI_API_KEY` is empty, the worker makes no Veo generation calls.
+When the provider is disabled or the key is absent, the worker makes no Veo generation request and the media pipeline continues with existing product/generated assets and local fallback rendering.
 
-Generated shots are intentionally generic B-roll. Prompts prohibit invented product appearance, fake packaging, logos, pricing, watermarks and product claims. Real product identity should come from verified product/demo assets.
+Generated B-roll is intentionally **not** treated as verified product evidence. Prompts prohibit invented product appearance, fake packaging, logos, prices, labels, watermarks and unsupported claims. Product-specific visuals should come from real vendor/product/demo assets.
 
-Each generation writes a provider manifest beside its clips so the job retains the scene prompt, operation identifier, output path and any generation errors.
+Provider outputs:
+
+```text
+assets/media/generated/<campaign-slug>/
+  veo-<job-id>-01.mp4
+  veo-<job-id>-02.mp4
+  veo-<job-id>-manifest.json
+```
+
+The manifest records the source scene, generation prompt, operation identifier, output path and any errors.
 
 ## Provider architecture
 
-Do not hard-code all media generation into the business controller. Provider-specific workers create clips and place them into the approved generated-assets folder, then the same premium renderer assembles them.
+Provider-specific workers create or capture media and place it into the shared asset folders. The premium renderer remains provider-agnostic.
 
-Worker roles:
-
-- `product-asset-worker` — downloads or receives approved vendor/product media.
-- `ai-broll-worker` — currently implemented with optional Veo 3.1 generation.
-- `digital-human-worker` — future approved recurring virtual creator through MetaHuman/Unreal or another provider.
+- `product-asset-worker` — verified vendor/product media.
+- `ai-broll-worker` — implemented with optional Veo 3.1 generation.
+- `digital-human-worker` — future persistent virtual creator via MetaHuman/Unreal or approved provider.
 - `screen-demo-worker` — future real software/product UI capture.
-- `music-worker` — selects licensed background audio.
-- `premium_video` — assembles shots, captions, narration and music.
-- `qa-worker` — checks product identity, claims, visual artifacts, disclosure and legibility.
+- `music-worker` — licensed background audio selection.
+- `premium_video` — shot assembly, captions, narration and music.
+- `qa-worker` — product identity, claims, visual artifacts, disclosure and legibility.
 
 ## Music
-
-Set an optional licensed track:
 
 ```text
 MEDIA_DEFAULT_MUSIC=C:\path\to\licensed-track.mp3
 ```
 
-The renderer mixes music at a low level under narration.
+Music is mixed quietly under narration.
 
 ## Output
-
-Each job writes:
 
 ```text
 outputs/media/<job-id>/
@@ -117,30 +124,12 @@ outputs/media/<job-id>/
     premium-manifest.json
 ```
 
-Veo assets are stored separately under:
-
-```text
-assets/media/generated/<campaign-slug>/
-  veo-<job-id>-01.mp4
-  veo-<job-id>-02.mp4
-  veo-<job-id>-manifest.json
-```
-
 `video-premium.mp4` is the preferred human-review output.
 
 ## Quality gate
 
-The manifest records:
-
-- count of verified product assets;
-- count of approved generated assets;
-- warnings when no product media is present;
-- warning when no voiceover is present;
-- warning when all visuals are fallback motion cards;
-- mandatory human review before publishing.
-
-The quality gate does not claim that a video is truthful merely because it rendered successfully. Product identity, claims, generated humans and platform compliance still require review.
+The premium manifest records verified product assets, approved generated assets, narration presence, fallback-card warnings and mandatory human review. A successful render is not proof that the underlying claims or product identity are correct.
 
 ## Maya vs Unreal vs generative video
 
-Maya is an optional specialist renderer for premium 3D product shots, not the main short-form pipeline. MetaHuman/Unreal is a better fit for a persistent digital creator. Generative video providers are better for rapid realistic B-roll. All of them feed the same `generated/<campaign-slug>/` contract instead of creating parallel publishing systems.
+Maya remains an optional specialist renderer for premium 3D product shots. MetaHuman/Unreal is a better fit for a persistent digital creator. Generative video is the fast path for realistic B-roll. All feed the same `generated/<campaign-slug>/` contract instead of creating parallel publishing systems.
