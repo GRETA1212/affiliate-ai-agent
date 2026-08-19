@@ -6,6 +6,7 @@ import httpx
 
 from app.services.business_controller import claim_next_job, complete_job, fail_job
 from app.services.media_renderer import render_job_video
+from app.services.premium_video import render_premium_video
 
 
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:4b")
@@ -117,8 +118,9 @@ def _ollama_result(job: dict[str, Any], model: str) -> dict[str, Any] | None:
             indent=2,
             sort_keys=True,
         )
-        + "\nProduce JSON with a short hook, a 3-6 beat vertical-video script, CTA, and factual notes. "
-        + "The draft will be rendered into a TikTok/YouTube Shorts MP4 for human review."
+        + "\nProduce JSON with a short hook, a 3-6 beat vertical-video script, CTA, factual notes, "
+        + "and a shot_intent array describing the desired visual for each beat. "
+        + "Prefer real product/demo evidence over invented visuals."
     )
     try:
         response = httpx.post(
@@ -145,6 +147,7 @@ def execute_next_job(
     model: str = DEFAULT_MODEL,
     use_ollama: bool = True,
     render_video: bool = True,
+    premium_video: bool = True,
 ) -> dict[str, Any] | None:
     job = claim_next_job()
     if job is None:
@@ -156,7 +159,14 @@ def execute_next_job(
             result = _fallback_result(job)
 
         if render_video and job.get("job_type") != "launch-checklist":
-            result["media"] = render_job_video(job, result)
+            base_media = render_job_video(job, result)
+            result["media"] = base_media
+            if premium_video:
+                result["premium_media"] = render_premium_video(
+                    job,
+                    result,
+                    voice_path=base_media.get("audio_path"),
+                )
 
         complete_job(job["id"], result)
         return {"job_id": job["id"], "job_type": job["job_type"], "result": result}
@@ -171,6 +181,7 @@ def drain_jobs(
     model: str = DEFAULT_MODEL,
     use_ollama: bool = True,
     render_video: bool = True,
+    premium_video: bool = True,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for _ in range(limit):
@@ -178,6 +189,7 @@ def drain_jobs(
             model=model,
             use_ollama=use_ollama,
             render_video=render_video,
+            premium_video=premium_video,
         )
         if result is None:
             break
