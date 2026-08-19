@@ -17,6 +17,11 @@ def main() -> None:
         action="store_true",
         help="Use deterministic fallback workers instead of local Ollama.",
     )
+    parser.add_argument(
+        "--no-video",
+        action="store_true",
+        help="Execute jobs without rendering MP4 drafts.",
+    )
     args = parser.parse_args()
 
     maintenance = run_maintenance()
@@ -25,12 +30,18 @@ def main() -> None:
         limit=args.work_limit,
         model=args.model,
         use_ollama=not args.no_ollama,
+        render_video=not args.no_video,
     )
     output = {
         "maintenance": maintenance.model_dump(mode="json"),
         "plan": run.model_dump(),
         "executed_jobs": executed,
         "profit": profit_summary().model_dump(),
+        "media": {
+            "render_mp4": not args.no_video,
+            "output_dir": "outputs/media/<job_id>/video.mp4",
+            "format": "1080x1920 H.264 MP4",
+        },
         "safety": {
             "auto_publish": False,
             "auto_spend": False,
