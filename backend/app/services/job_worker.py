@@ -4,6 +4,7 @@ from typing import Any
 
 import httpx
 
+from app.services.ai_video_provider import generate_broll_for_job
 from app.services.business_controller import claim_next_job, complete_job, fail_job
 from app.services.media_renderer import render_job_video
 from app.services.premium_video import render_premium_video
@@ -148,6 +149,7 @@ def execute_next_job(
     use_ollama: bool = True,
     render_video: bool = True,
     premium_video: bool = True,
+    generate_ai_broll: bool = True,
 ) -> dict[str, Any] | None:
     job = claim_next_job()
     if job is None:
@@ -161,6 +163,12 @@ def execute_next_job(
         if render_video and job.get("job_type") != "launch-checklist":
             base_media = render_job_video(job, result)
             result["media"] = base_media
+
+            # Paid/external generation remains opt-in. generate_broll_for_job is a no-op
+            # unless AI_VIDEO_PROVIDER and GEMINI_API_KEY are explicitly configured.
+            if premium_video and generate_ai_broll:
+                result["ai_broll"] = generate_broll_for_job(job, result)
+
             if premium_video:
                 result["premium_media"] = render_premium_video(
                     job,
@@ -182,6 +190,7 @@ def drain_jobs(
     use_ollama: bool = True,
     render_video: bool = True,
     premium_video: bool = True,
+    generate_ai_broll: bool = True,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for _ in range(limit):
@@ -190,6 +199,7 @@ def drain_jobs(
             use_ollama=use_ollama,
             render_video=render_video,
             premium_video=premium_video,
+            generate_ai_broll=generate_ai_broll,
         )
         if result is None:
             break
