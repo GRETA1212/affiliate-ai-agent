@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from app.services.business_controller import claim_next_job, complete_job, fail_job
+from app.services.media_renderer import render_job_video
 
 
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:4b")
@@ -35,6 +36,12 @@ def _fallback_result(job: dict[str, Any]) -> dict[str, Any]:
         return {
             "mode": "fallback",
             "job_type": job_type,
+            "hook": "One useful change can make this offer easier to understand.",
+            "script": [
+                "Start with the buyer problem, not the product name.",
+                "Show the practical benefit in plain language.",
+                "End with a clear disclosed affiliate call to action.",
+            ],
             "channels": channels,
             "content_tasks": [
                 f"Create one buyer-intent asset for {channel}" for channel in channels
@@ -47,6 +54,12 @@ def _fallback_result(job: dict[str, Any]) -> dict[str, Any]:
         return {
             "mode": "fallback",
             "job_type": job_type,
+            "hook": "Which version earns more qualified clicks?",
+            "script": [
+                "Keep the offer and audience constant.",
+                f"Test only the {primary}.",
+                "Measure qualified clicks and approved conversions before choosing a winner.",
+            ],
             "experiment": {
                 "primary_variable": primary,
                 "variant_a": "control",
@@ -58,6 +71,12 @@ def _fallback_result(job: dict[str, Any]) -> dict[str, Any]:
         return {
             "mode": "fallback",
             "job_type": job_type,
+            "hook": "Traffic without conversions means something in the funnel needs work.",
+            "script": [
+                "Check whether the audience intent matches the offer.",
+                "Check trust, clarity, tracking and the call to action.",
+                "Fix the weakest point before sending more traffic.",
+            ],
             "diagnostic_checks": brief.get("check", []),
             "status": "requires-review-before-more-traffic",
         }
@@ -65,6 +84,12 @@ def _fallback_result(job: dict[str, Any]) -> dict[str, Any]:
         return {
             "mode": "fallback",
             "job_type": job_type,
+            "hook": "This campaign has evidence worth expanding carefully.",
+            "script": [
+                "Preserve the proven message and audience.",
+                "Create adjacent buyer-intent content around the same problem.",
+                "Scale only while approved revenue and conversion quality hold up.",
+            ],
             "actions": brief.get("actions", []),
             "status": "draft-only",
         }
@@ -92,7 +117,8 @@ def _ollama_result(job: dict[str, Any], model: str) -> dict[str, Any] | None:
             indent=2,
             sort_keys=True,
         )
-        + "\nProduce an actionable draft suitable for the next agent or human reviewer."
+        + "\nProduce JSON with a short hook, a 3-6 beat vertical-video script, CTA, and factual notes. "
+        + "The draft will be rendered into a TikTok/YouTube Shorts MP4 for human review."
     )
     try:
         response = httpx.post(
@@ -114,7 +140,12 @@ def _ollama_result(job: dict[str, Any], model: str) -> dict[str, Any] | None:
     return None
 
 
-def execute_next_job(*, model: str = DEFAULT_MODEL, use_ollama: bool = True) -> dict[str, Any] | None:
+def execute_next_job(
+    *,
+    model: str = DEFAULT_MODEL,
+    use_ollama: bool = True,
+    render_video: bool = True,
+) -> dict[str, Any] | None:
     job = claim_next_job()
     if job is None:
         return None
@@ -123,6 +154,10 @@ def execute_next_job(*, model: str = DEFAULT_MODEL, use_ollama: bool = True) -> 
         result = _ollama_result(job, model) if use_ollama else None
         if result is None:
             result = _fallback_result(job)
+
+        if render_video and job.get("job_type") != "launch-checklist":
+            result["media"] = render_job_video(job, result)
+
         complete_job(job["id"], result)
         return {"job_id": job["id"], "job_type": job["job_type"], "result": result}
     except Exception as exc:  # keep the durable queue from getting stuck in running
@@ -135,10 +170,15 @@ def drain_jobs(
     limit: int = 10,
     model: str = DEFAULT_MODEL,
     use_ollama: bool = True,
+    render_video: bool = True,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for _ in range(limit):
-        result = execute_next_job(model=model, use_ollama=use_ollama)
+        result = execute_next_job(
+            model=model,
+            use_ollama=use_ollama,
+            render_video=render_video,
+        )
         if result is None:
             break
         results.append(result)
