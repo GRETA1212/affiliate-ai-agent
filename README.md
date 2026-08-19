@@ -1,144 +1,41 @@
 # Affiliate AI Agent
 
-AI-assisted affiliate opportunity research, public editorial content, campaign tracking, CJ/Impact commission sync, real revenue measurement, and evidence-based campaign recommendations.
+AI-assisted affiliate opportunity research, public editorial content, campaign tracking, CJ/Impact commission sync, real revenue measurement, evidence-based campaign recommendations, and local short-form video production.
 
-## Current system — V0.9
+## Current system — orchestrated media factory
 
-V0.9 turns the V0.8 public-site foundation into a fact-checked commercial-content layer while keeping the V0.7 tracking/revenue engine intact.
+The orchestrated branch adds a durable execution worker and premium media pipeline on top of the existing business/revenue stack.
 
 ```text
-Search / social / direct traffic
-            ↓
-      website/ public site
-            ↓
- fact-checked buyer guide/comparison
-            ↓
-  public /go/{campaign} redirect
-            ↓
-       affiliate network
-            ↓
-       sale / commission
-            ↓
-       backend + SQLite
-            ↓
-      real CVR + real EPC
-            ↓
-      Performance Advisor
-            ↓
- scale / test / optimize / pause
+opportunity + campaign data
+        ↓
+performance advisor / planner
+        ↓
+durable content-job queue
+        ↓
+Ollama execution worker
+        ↓
+hook + script + shot intent
+        ↓
+verified product/demo assets
+        ↓
+approved AI / creator / B-roll clips
+        ↓
+voice + captions + optional licensed music
+        ↓
+FFmpeg premium 1080×1920 H.264 render
+        ↓
+quality gate
+        ↓
+human approval
 ```
 
-The repository has three distinct applications:
+The repository has three distinct applications plus the media worker:
 
 - `website/` — public, SEO-oriented editorial site;
 - `frontend/` — private research, campaign and performance dashboard;
-- `backend/` — opportunity research, tracking redirects, CJ/Impact sync, SQLite revenue and performance advisor.
-
-## Public website — V0.9
-
-The static site now includes five named, fact-checked commercial guides in addition to the category/legal foundation:
-
-- `/comparisons/lovable-vs-hostinger-horizons/`
-- `/ai-app-builders/lovable-buyer-guide/`
-- `/ai-voice/elevenlabs-buyer-guide/`
-- `/ai-marketing/semrush-ai-visibility-buyer-guide/`
-- `/best-ai-tools/small-business-2026/`
-
-The Best AI Tools, App Builders, AI Voice, AI Marketing and Comparisons indexes now surface these guides directly.
-
-Commercial-content safeguards:
-
-- visible **11 August 2026** fact-check date;
-- official vendor sources linked on every named guide;
-- source/claim register in `website/FACT_CHECK.md`;
-- no invented hands-on testing, testimonials, affiliate approval or earnings;
-- pricing language distinguishes current/promotional page values from permanent guarantees;
-- affiliate economics are explicitly separated from product-quality judgments;
-- direct official product links are used until an approved affiliate link exists.
-
-Build the public site:
-
-```bash
-cd website
-npm run build
-```
-
-Preview locally:
-
-```bash
-cd website
-npm run dev
-```
-
-Open:
-
-```text
-http://127.0.0.1:4174
-```
-
-Before a real deployment set:
-
-```text
-SITE_NAME=Your final brand
-SITE_URL=https://www.yourdomain.com
-CONTACT_EMAIL=hello@yourdomain.com
-```
-
-See `website/README.md` for deployment and affiliate-link workflow details.
-
-## Measurable affiliate loop
-
-1. Find opportunities from the verified AI-affiliate catalog, CJ, Impact, direct affiliate pages and YouTube signals.
-2. Create a persistent campaign with an approved affiliate tracking URL.
-3. Bind the campaign to CJ or Impact when applicable.
-4. Publish `/go/{slug}` on a public HTTPS tracking host.
-5. Record human/bot-aware clicks before redirecting.
-6. Sync CJ commissions and Impact actions into SQLite.
-7. Reconcile approvals, reversals and CJ correction deltas without double-counting.
-8. Calculate real conversion rate and EPC by currency.
-9. Classify campaigns as winner, loser, promising, neutral, insufficient-data or inactive.
-10. Recommend scale, increase-test, hold, optimize, pause/rework or collect-data.
-
-Opportunity scores and advisor outputs are decision aids, not profit guarantees. Real earnings require approved affiliate accounts, qualified traffic, conversions and compliance with network/platform rules.
-
-## Performance Advisor
-
-```text
-GET /api/v1/performance/recommendations
-```
-
-Default decision thresholds:
-
-- 50 human clicks minimum sample;
-- 150 clicks for a strong no-conversion review;
-- 2% healthy-test CVR;
-- 0.5% low-CVR warning;
-- 1.25× same-currency peer median EPC for a relative winner;
-- 0.5× same-currency peer median EPC for a relative weak signal after enough traffic.
-
-Campaigns are never compared across currencies.
-
-## Persistent database and tracking
-
-Default database:
-
-```text
-data/affiliate.db
-```
-
-SQLite stores campaigns, clicks, canonical conversions, CJ/Impact bindings, normalized raw network events and sync state. Raw IP addresses are deliberately not stored. Bot clicks are excluded from human KPIs. Pending and reversed commissions do not count as approved revenue.
-
-Local tracked-link example:
-
-```text
-http://localhost:8000/go/example-campaign
-```
-
-For actual external traffic, deploy the backend on a public HTTPS tracking domain such as:
-
-```text
-https://go.yourdomain.com/example-campaign
-```
+- `backend/` — opportunity research, tracking redirects, CJ/Impact sync, SQLite revenue, performance advisor and orchestration workers;
+- `backend/app/services/premium_video.py` — product-first premium short-video assembler.
 
 ## Run the private system locally
 
@@ -163,6 +60,46 @@ npm run dev
 
 Open the dashboard at `http://localhost:5173` and API docs at `http://localhost:8000/docs`.
 
+## Run one complete agent cycle
+
+Make sure Ollama and FFmpeg are available, then:
+
+```bash
+cd backend
+python run_agent_cycle.py --model qwen3:4b
+```
+
+The cycle runs maintenance, plans revenue-focused work, executes queued jobs, creates draft media for eligible jobs and reports real recorded profit.
+
+## Premium video inputs
+
+The premium renderer intentionally prefers real product/demo evidence over generated visuals.
+
+Default folders:
+
+```text
+assets/media/products/<campaign-slug>/
+assets/media/generated/<campaign-slug>/
+```
+
+Put approved product screenshots, vendor clips or screen recordings in the product folder. Put reviewed AI B-roll, digital-human clips, Unreal/MetaHuman renders or Maya renders in the generated folder.
+
+The renderer accepts MP4/MOV/M4V/WebM and JPG/JPEG/PNG/WebP. It creates:
+
+```text
+outputs/media/<job-id>/premium/video-premium.mp4
+```
+
+See `docs/PREMIUM_VIDEO_PIPELINE.md` for the complete asset contract and quality-gate rules.
+
+## Optional licensed music
+
+```text
+MEDIA_DEFAULT_MUSIC=C:\path\to\licensed-track.mp3
+```
+
+Music is mixed quietly under narration. Do not feed unlicensed copyrighted music into automated publishing.
+
 ## Private credentials
 
 ```text
@@ -179,31 +116,29 @@ IMPACT_API_BASE_URL=https://api.impact.com
 YOUTUBE_API_KEY=
 AFFILIATE_DB_PATH=data/affiliate.db
 VITE_API_BASE_URL=http://localhost:8000
+
+OLLAMA_MODEL=qwen3:4b
+OLLAMA_URL=http://127.0.0.1:11434/api/generate
+MEDIA_ASSET_DIR=assets/media
+MEDIA_OUTPUT_DIR=outputs/media
 ```
 
 Do not commit `.env` or paste account secrets into public issues, articles or source files.
 
-## Validation
+## Safety boundary
 
-GitHub Actions validates all three layers:
+The orchestrator can research, score, draft, queue, render and analyse. It does not automatically publish, spend money, log into financial accounts or fabricate revenue. Publishing and spending remain explicit approval steps.
 
-- backend Ruff;
-- backend pytest;
-- private React dashboard production build;
-- public website static build;
-- homepage, sitemap and affiliate-disclosure page;
-- all five named commercial guides;
-- fact-check date rendered into the comparison output.
+## Current media quality level
+
+With only fallback assets, the renderer produces a real vertical MP4 with narration and captions. With real product media and approved generated clips, it assembles a much richer short-form video. The system does not yet call Veo, MetaHuman/Unreal or Maya directly; those should be provider workers that output approved clips into the generated-assets contract.
 
 ## Next roadmap
 
-1. Choose a final brand/domain and deploy `website/dist/` publicly.
-2. Deploy the backend on a public HTTPS tracking subdomain.
-3. Add 5–10 more evidence-based articles around the strongest buyer-intent clusters.
-4. Apply to appropriate affiliate programs using the live editorial property.
-5. Replace direct product CTAs with approved `/go/{slug}` campaign links and `rel="sponsored"` disclosure.
-6. Add automated fact-refresh checks for prices/program terms that flag stale articles before publication.
-7. Add scheduled server-side CJ/Impact sync with retry/backoff and sync history.
-8. Add Search Console + GA4 or privacy-conscious traffic analytics.
-9. Persist recommendation snapshots to show performance changes over time.
-10. Add controlled content/offer experiments.
+1. Add a provider worker for high-realism AI B-roll.
+2. Add a persistent digital-human worker (MetaHuman/Unreal or equivalent).
+3. Add screen-demo capture for software offers.
+4. Add licensed music/SFX selection.
+5. Add visual QA for faces, hands, logos, product identity and caption safe-zones.
+6. Add approved YouTube/TikTok publishing connectors.
+7. Feed views, qualified clicks, conversions, EPC and revenue back into creative decisions.
