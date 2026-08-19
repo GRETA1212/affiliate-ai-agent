@@ -2,9 +2,7 @@
 
 AI-assisted affiliate opportunity research, public editorial content, campaign tracking, CJ/Impact commission sync, real revenue measurement, evidence-based campaign recommendations, and local short-form video production.
 
-## Current system — orchestrated media factory
-
-The orchestrated branch adds a durable execution worker and premium media pipeline on top of the existing business/revenue stack.
+## Current system — orchestrated premium media factory
 
 ```text
 opportunity + campaign data
@@ -19,6 +17,8 @@ hook + script + shot intent
         ↓
 verified product/demo assets
         ↓
+optional Veo 3.1 portrait B-roll
+        ↓
 approved AI / creator / B-roll clips
         ↓
 voice + captions + optional licensed music
@@ -30,16 +30,15 @@ quality gate
 human approval
 ```
 
-The repository has three distinct applications plus the media worker:
+The repository has three applications plus media workers:
 
-- `website/` — public, SEO-oriented editorial site;
-- `frontend/` — private research, campaign and performance dashboard;
-- `backend/` — opportunity research, tracking redirects, CJ/Impact sync, SQLite revenue, performance advisor and orchestration workers;
+- `website/` — public editorial site;
+- `frontend/` — private research/campaign/performance dashboard;
+- `backend/` — opportunity research, tracking, affiliate-network sync, revenue logic and orchestration;
+- `backend/app/services/ai_video_provider.py` — optional Veo 3.1 B-roll provider;
 - `backend/app/services/premium_video.py` — product-first premium short-video assembler.
 
-## Run the private system locally
-
-Backend:
+## Run locally
 
 ```bash
 cd backend
@@ -47,50 +46,57 @@ python -m venv .venv
 # Windows PowerShell
 .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-uvicorn app.main:app --reload --port 8000 --env-file ../.env
-```
-
-Dashboard:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open the dashboard at `http://localhost:5173` and API docs at `http://localhost:8000/docs`.
-
-## Run one complete agent cycle
-
-Make sure Ollama and FFmpeg are available, then:
-
-```bash
-cd backend
 python run_agent_cycle.py --model qwen3:4b
 ```
 
-The cycle runs maintenance, plans revenue-focused work, executes queued jobs, creates draft media for eligible jobs and reports real recorded profit.
+FFmpeg/ffprobe must be on PATH. Ollama is recommended for local scripts. The preferred review output is:
+
+```text
+outputs/media/<job-id>/premium/video-premium.mp4
+```
 
 ## Premium video inputs
 
-The premium renderer intentionally prefers real product/demo evidence over generated visuals.
-
-Default folders:
+Real product/demo evidence has priority:
 
 ```text
 assets/media/products/<campaign-slug>/
 assets/media/generated/<campaign-slug>/
 ```
 
-Put approved product screenshots, vendor clips or screen recordings in the product folder. Put reviewed AI B-roll, digital-human clips, Unreal/MetaHuman renders or Maya renders in the generated folder.
+Product screenshots, vendor clips and screen recordings belong in `products`. Reviewed AI B-roll, digital-human clips, Unreal/MetaHuman renders and Maya renders belong in `generated`.
 
-The renderer accepts MP4/MOV/M4V/WebM and JPG/JPEG/PNG/WebP. It creates:
+## Optional Veo 3.1 B-roll
+
+The media factory can now call Gemini/Veo and request high-realism portrait `9:16` B-roll before final assembly. This is **disabled by default** because external generation may incur charges.
+
+Explicitly enable it in `.env` only when you want billable AI-video generation:
 
 ```text
-outputs/media/<job-id>/premium/video-premium.mp4
+AI_VIDEO_PROVIDER=veo
+GEMINI_API_KEY=<private key>
+VEO_MODEL=veo-3.1-fast-generate-preview
+VEO_MAX_CLIPS=2
 ```
 
-See `docs/PREMIUM_VIDEO_PIPELINE.md` for the complete asset contract and quality-gate rules.
+To guarantee no Veo generation calls:
+
+```text
+AI_VIDEO_PROVIDER=disabled
+```
+
+Generated prompts prohibit invented product appearance, fake packaging, logos, prices, labels, watermarks and unsupported claims. Product-specific identity comes from verified real assets.
+
+Generated clips are written to:
+
+```text
+assets/media/generated/<campaign-slug>/
+  veo-<job-id>-01.mp4
+  veo-<job-id>-02.mp4
+  veo-<job-id>-manifest.json
+```
+
+The premium renderer then automatically picks those files up.
 
 ## Optional licensed music
 
@@ -98,47 +104,43 @@ See `docs/PREMIUM_VIDEO_PIPELINE.md` for the complete asset contract and quality
 MEDIA_DEFAULT_MUSIC=C:\path\to\licensed-track.mp3
 ```
 
-Music is mixed quietly under narration. Do not feed unlicensed copyrighted music into automated publishing.
-
-## Private credentials
+## Private configuration
 
 ```text
 CJ_API_TOKEN=
 CJ_WEBSITE_ID=
 CJ_PUBLISHER_ID=
-CJ_LINK_SEARCH_URL=https://link-search.api.cj.com/v2/link-search
-CJ_COMMISSION_API_URL=https://commissions.api.cj.com/query
-
 IMPACT_ACCOUNT_SID=
 IMPACT_AUTH_TOKEN=
-IMPACT_API_BASE_URL=https://api.impact.com
-
 YOUTUBE_API_KEY=
 AFFILIATE_DB_PATH=data/affiliate.db
 VITE_API_BASE_URL=http://localhost:8000
 
 OLLAMA_MODEL=qwen3:4b
 OLLAMA_URL=http://127.0.0.1:11434/api/generate
+EDGE_TTS_VOICE=en-US-AriaNeural
 MEDIA_ASSET_DIR=assets/media
 MEDIA_OUTPUT_DIR=outputs/media
+MEDIA_DEFAULT_MUSIC=
+
+AI_VIDEO_PROVIDER=disabled
+GEMINI_API_KEY=
+VEO_MODEL=veo-3.1-fast-generate-preview
+VEO_MAX_CLIPS=2
 ```
 
-Do not commit `.env` or paste account secrets into public issues, articles or source files.
+Do not commit `.env` or paste private credentials into source files or issues.
 
 ## Safety boundary
 
-The orchestrator can research, score, draft, queue, render and analyse. It does not automatically publish, spend money, log into financial accounts or fabricate revenue. Publishing and spending remain explicit approval steps.
-
-## Current media quality level
-
-With only fallback assets, the renderer produces a real vertical MP4 with narration and captions. With real product media and approved generated clips, it assembles a much richer short-form video. The system does not yet call Veo, MetaHuman/Unreal or Maya directly; those should be provider workers that output approved clips into the generated-assets contract.
+The orchestrator can research, score, draft, queue, render and analyse. It does not automatically publish or spend money. Paid AI-video generation requires explicit provider configuration, and every premium video remains human-review-required before publishing.
 
 ## Next roadmap
 
-1. Add a provider worker for high-realism AI B-roll.
-2. Add a persistent digital-human worker (MetaHuman/Unreal or equivalent).
-3. Add screen-demo capture for software offers.
-4. Add licensed music/SFX selection.
-5. Add visual QA for faces, hands, logos, product identity and caption safe-zones.
-6. Add approved YouTube/TikTok publishing connectors.
-7. Feed views, qualified clicks, conversions, EPC and revenue back into creative decisions.
+1. Persistent digital-human worker (MetaHuman/Unreal or approved equivalent).
+2. Real screen-demo capture worker for software offers.
+3. Stronger visual QA for faces, hands, text, logos, product identity and safe-zones.
+4. Approved YouTube/TikTok publishing connectors after review.
+5. Analytics feedback from views → clicks → conversions → EPC → profit.
+
+See `docs/PREMIUM_VIDEO_PIPELINE.md` for the complete asset contract and provider design.
