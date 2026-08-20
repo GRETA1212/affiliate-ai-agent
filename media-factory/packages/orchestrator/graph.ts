@@ -136,12 +136,17 @@ export function buildFactoryGraph(options: BuildGraphOptions) {
 
     .addNode('assets', async (state) => {
       const plannedAssets = planAssets({ storyboard: state.storyboard!, mode: state.assetMode });
-      const directed = await directAssets({
-        brand: state.brand,
-        storyboard: state.storyboard!,
-        assetPlan: plannedAssets,
-        brandsDirectory: options.brandsDirectory,
-      });
+      // `create` is a planning-only command. It must remain free/offline even
+      // when provider credentials exist, otherwise reviewing a storyboard could
+      // unexpectedly spend credits. Provider calls only happen for real renders.
+      const directed = state.skipRender
+        ? { assetPlan: plannedAssets, warnings: [] as string[] }
+        : await directAssets({
+            brand: state.brand,
+            storyboard: state.storyboard!,
+            assetPlan: plannedAssets,
+            brandsDirectory: options.brandsDirectory,
+          });
       const assetPlan = directed.assetPlan;
       const renderInput = buildRenderInput({
         jobId: state.jobId,
