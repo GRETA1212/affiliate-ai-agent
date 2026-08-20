@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadBrand, listBrandIds } from '../packages/core/brand.ts';
+import { classify } from '../packages/agents/asset-planner.ts';
 import {
   checkChildDirected,
   checkDisclosures,
@@ -103,5 +104,20 @@ describe('child-directed rules', () => {
   it('marks the kids brand as child-directed with purchase CTAs disabled', () => {
     expect(kids.rules.childDirected).toBe(true);
     expect(kids.rules.allowPurchaseCta).toBe(false);
+  });
+});
+
+
+describe('asset classification', () => {
+  it('honours the explicit type prefix over prose matching', () => {
+    expect(classify('text_graphic: CTA card')).toBe('text_graphic');
+    expect(classify('screen_recording: tool interface')).toBe('screen_recording');
+    expect(classify('product_broll: bottle on tray')).toBe('product_broll');
+    expect(classify('stock_footage: city clip')).toBe('stock_footage');
+  });
+
+  it('falls back to prose matching when there is no prefix', () => {
+    expect(classify('a caption card with no prefix')).toBe('text_graphic');
+    expect(classify('something unclassifiable')).toBe('generated_image');
   });
 });

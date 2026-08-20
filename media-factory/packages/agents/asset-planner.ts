@@ -56,7 +56,28 @@ export function planAssets(options: AssetPlanOptions): AssetPlan {
   });
 }
 
+const EXPLICIT_TYPES: Record<string, AssetType> = {
+  generated_image: 'generated_image',
+  stock_footage: 'stock_footage',
+  screen_recording: 'screen_recording',
+  product_broll: 'product_broll',
+  animation: 'animation',
+  text_graphic: 'text_graphic',
+};
+
+/**
+ * Requirements read "text_graphic: CTA card". The prefix is an explicit
+ * declaration and must win. This previously fell through to prose matching,
+ * which looks for "text graphic" with a space rather than the snake_case
+ * token, so text cards were filed as generated_image - and so were
+ * screen_recording and product_broll, under-counting the assets that need
+ * real capture or licensing before publish.
+ */
 export function classify(requirement: string): AssetType {
+  const prefix = requirement.split(':')[0]?.trim().toLowerCase() ?? '';
+  const explicit = EXPLICIT_TYPES[prefix];
+  if (explicit) return explicit;
+
   for (const hint of TYPE_HINTS) {
     if (hint.pattern.test(requirement)) return hint.type;
   }
