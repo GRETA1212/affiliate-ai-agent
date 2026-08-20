@@ -1,0 +1,83 @@
+{
+  "id": "publication_374a094483",
+  "jobId": "job_fe9b187f63",
+  "brandId": "maya",
+  "videoPath": "/home/claude/media-factory/output/job_fe9b187f63/maya-job_fe9b187f63.mp4",
+  "thumbnailPath": "/home/claude/media-factory/output/job_fe9b187f63/thumbnail.png",
+  "thumbnailFrameSeconds": 3.27,
+  "manifests": [
+    {
+      "platform": "tiktok",
+      "caption": "An AI planned a 10-minute makeup look. Here's where it slips.\n\nShow the AI's reasoning for a 10-minute makeup look, then show the one thing it cannot see..\n\nFull breakdown is in the link in bio\n\nVirtual AI creator · #ad - affiliate link",
+      "hashtags": [
+        "#aibeauty",
+        "#beautytech",
+        "#makeuproutine",
+        "#virtualcreator",
+        "#getreadywithai"
+      ],
+      "disclosureFlags": {
+        "aiGeneratedContent": true,
+        "paidPartnership": true,
+        "madeForKids": false
+      },
+      "aspectRatio": "9:16",
+      "maxDurationSeconds": 600,
+      "publishMethod": "manual_upload",
+      "notes": [
+        "Upload manually. This tool does not post to platforms and does not bypass any platform restriction.",
+        "set the platform's AI-generated content toggle, and keep the \"Virtual AI creator\" badge visible",
+        "set the platform's paid partnership / branded content toggle"
+      ]
+    },
+    {
+      "platform": "youtube_shorts",
+      "caption": "An AI planned a 10-minute makeup look. Here's where it slips.\n\nShow the AI's reasoning for a 10-minute makeup look, then show the one thing it cannot see..\n\nFull breakdown is in the link in bio\n\nVirtual AI creator · #ad - affiliate link",
+      "hashtags": [
+        "#aibeauty",
+        "#beautytech",
+        "#makeuproutine",
+        "#virtualcreator"
+      ],
+      "disclosureFlags": {
+        "aiGeneratedContent": true,
+        "paidPartnership": true,
+        "madeForKids": false
+      },
+      "aspectRatio": "9:16",
+      "maxDurationSeconds": 180,
+      "publishMethod": "manual_upload",
+      "notes": [
+        "Upload manually. This tool does not post to platforms and does not bypass any platform restriction.",
+        "set the platform's AI-generated content toggle, and keep the \"Virtual AI creator\" badge visible",
+        "set the platform's paid partnership / branded content toggle"
+      ]
+    },
+    {
+      "platform": "instagram_reels",
+      "caption": "An AI planned a 10-minute makeup look. Here's where it slips.\n\nShow the AI's reasoning for a 10-minute makeup look, then show the one thing it cannot see..\n\nFull breakdown is in the link in bio\n\nVirtual AI creator · #ad - affiliate link",
+      "hashtags": [
+        "#aibeauty",
+        "#beautytech",
+        "#makeuproutine",
+        "#virtualcreator",
+        "#getreadywithai"
+      ],
+      "disclosureFlags": {
+        "aiGeneratedContent": true,
+        "paidPartnership": true,
+        "madeForKids": false
+      },
+      "aspectRatio": "9:16",
+      "maxDurationSeconds": 180,
+      "publishMethod": "manual_upload",
+      "notes": [
+        "Upload manually. This tool does not post to platforms and does not bypass any platform restriction.",
+        "set the platform's AI-generated content toggle, and keep the \"Virtual AI creator\" badge visible",
+        "set the platform's paid partnership / branded content toggle"
+      ]
+    }
+  ],
+  "qaPassed": true,
+  "createdAt": "2026-08-20T09:23:54.943Z"
+}

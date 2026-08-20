@@ -1,0 +1,42 @@
+{
+  "id": "res_fe9b187f63",
+  "topic": "AI chooses a 10-minute makeup look",
+  "sources": [
+    {
+      "id": "src_placeholder_maya_1",
+      "url": "https://operator-notes.invalid/maya/ai-chooses-look",
+      "title": "PLACEHOLDER - replace with the post, dashboard or report you observed",
+      "publisher": "operator note",
+      "capturedAt": "1970-01-01T00:00:00.000Z",
+      "notes": "Template value, not observed data. Replace before treating this score as a decision."
+    }
+  ],
+  "facts": [
+    {
+      "id": "assumption_4198250423",
+      "statement": "The tool's suggestion is followed exactly, with no substitutions",
+      "kind": "assumption",
+      "sourceId": null,
+      "numeric": false
+    },
+    {
+      "id": "assumption_6a49d38372",
+      "statement": "Lighting and camera stay constant across the shots",
+      "kind": "assumption",
+      "sourceId": null,
+      "numeric": false
+    },
+    {
+      "id": "assumption_7ee7557305",
+      "statement": "The result is judged by eye on camera, not measured",
+      "kind": "assumption",
+      "sourceId": null,
+      "numeric": false
+    }
+  ],
+  "gaps": [
+    "source \"src_ftc_disclosures\" is registered but has never been captured, so it cannot support a claim",
+    "no verified facts available - the script must avoid numeric and factual claims entirely"
+  ],
+  "createdAt": "2026-08-20T09:23:32.332Z"
+}

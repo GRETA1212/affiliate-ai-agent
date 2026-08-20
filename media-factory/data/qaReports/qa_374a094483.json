@@ -1,0 +1,23 @@
+{
+  "id": "qa_374a094483",
+  "jobId": "job_fe9b187f63",
+  "brandId": "maya",
+  "passed": true,
+  "checksRun": [
+    "unsupported_claims",
+    "fake_prices",
+    "fake_discounts",
+    "fake_statistics",
+    "missing_citations",
+    "missing_ai_disclosure",
+    "missing_affiliate_disclosure",
+    "scene_timing",
+    "caption_overflow",
+    "missing_assets",
+    "banned_phrases",
+    "child_directed_rules",
+    "synthetic_asset_honesty"
+  ],
+  "findings": [],
+  "createdAt": "2026-08-20T09:23:54.939Z"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "kids-learning",
+  "name": "Kids Learning",
+  "niche": "educational short videos for children",
+  "audience": "parents and teachers of 4-8 year olds, watching together",
+  "voice": "warm, slow, concrete; one idea per scene; no pressure, no urgency",
+  "platforms": ["youtube", "youtube_shorts"],
+  "monetizationPaths": ["ad_revenue", "own_product"],
+  "defaultCta": "Watch the next lesson to keep counting",
+  "hashtags": ["#learningforkids", "#kindergarten", "#earlylearning", "#counting", "#shorts"],
+  "theme": {
+    "background": "#12564D",
+    "backgroundAlt": "#1D7A6B",
+    "accent": "#FFC53D",
+    "accentSoft": "#FF8A5C",
+    "text": "#FFFDF3",
+    "textMuted": "#BFE3D9",
+    "displayFont": "Poppins",
+    "bodyFont": "Poppins Medium",
+    "utilityFont": "DejaVu Sans Condensed",
+    "signature": "lesson_stage"
+  },
+  "rules": {
+    "bannedPhrases": [
+      "buy now",
+      "click the link",
+      "sign up",
+      "enter your email",
+      "limited time",
+      "smartest kid",
+      "your child will be behind"
+    ],
+    "requireCitations": true,
+    "requireAiDisclosure": true,
+    "aiDisclosureText": "Made with AI",
+    "requireAffiliateDisclosure": true,
+    "affiliateDisclosureText": "#ad - paid promotion",
+    "childDirected": true,
+    "allowPurchaseCta": false,
+    "minDurationSeconds": 20,
+    "maxDurationSeconds": 60,
+    "maxCaptionCharsPerLine": 16,
+    "maxCaptionLinesPerScene": 2,
+    "minSceneSeconds": 2,
+    "maxSceneSeconds": 10
+  }
+}

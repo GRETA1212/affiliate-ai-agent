@@ -1,0 +1,35 @@
+{
+  "_README": [
+    "Research corpus for this brand.",
+    "",
+    "approvedDomains - the ResearchAgent accepts a source only if its host is in",
+    "this list, so a stray URL cannot become a citation.",
+    "",
+    "sources - approved sources. A capturedAt of 1970-01-01 is the 'never fetched'",
+    "sentinel: the domain is approved but no evidence has been captured from it.",
+    "",
+    "claims - VERIFIED FACTS ONLY, each carrying a sourceId you have actually read.",
+    "This array ships EMPTY on purpose. The factory must never boot with invented",
+    "citations, so the writer works without factual claims until you add real ones.",
+    "",
+    "assumptions - framing the writer may use. Never cited, and the QA agent blocks",
+    "them from carrying numbers."
+  ],
+  "approvedDomains": ["ftc.gov", "tiktok.com", "support.google.com", "help.instagram.com"],
+  "sources": [
+    {
+      "id": "src_ftc_disclosures",
+      "url": "https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers",
+      "title": "FTC guidance on disclosures for social media influencers",
+      "publisher": "US Federal Trade Commission",
+      "capturedAt": "1970-01-01T00:00:00.000Z",
+      "notes": "Reference for affiliate and sponsorship disclosure wording. Confirm the current guidance yourself before relying on it."
+    }
+  ],
+  "claims": [],
+  "assumptions": [
+    "The tool's suggestion is followed exactly, with no substitutions",
+    "Lighting and camera stay constant across the shots",
+    "The result is judged by eye on camera, not measured"
+  ]
+}

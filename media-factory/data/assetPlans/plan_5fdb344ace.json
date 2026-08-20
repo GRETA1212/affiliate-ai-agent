@@ -1,0 +1,108 @@
+{
+  "id": "plan_5fdb344ace",
+  "storyboardId": "sb_871c8a82fd",
+  "assets": [
+    {
+      "id": "asset_14850c9f4b",
+      "sceneNumber": 1,
+      "type": "text_graphic",
+      "description": "text_graphic: hook typography",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    },
+    {
+      "id": "asset_d53b73836c",
+      "sceneNumber": 1,
+      "type": "generated_image",
+      "description": "generated_image: abstract gloss texture backdrop",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    },
+    {
+      "id": "asset_38985358cf",
+      "sceneNumber": 2,
+      "type": "generated_image",
+      "description": "generated_image: synthetic mockup of the step",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    },
+    {
+      "id": "asset_fd2f4c268b",
+      "sceneNumber": 2,
+      "type": "text_graphic",
+      "description": "text_graphic: panel label",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    },
+    {
+      "id": "asset_ac70403139",
+      "sceneNumber": 3,
+      "type": "generated_image",
+      "description": "generated_image: synthetic mockup of the step",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    },
+    {
+      "id": "asset_58fe7fe1df",
+      "sceneNumber": 3,
+      "type": "text_graphic",
+      "description": "text_graphic: panel label",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    },
+    {
+      "id": "asset_52d128642f",
+      "sceneNumber": 4,
+      "type": "generated_image",
+      "description": "generated_image: synthetic mockup of the step",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    },
+    {
+      "id": "asset_e0ad23bc7a",
+      "sceneNumber": 4,
+      "type": "text_graphic",
+      "description": "text_graphic: panel label",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    },
+    {
+      "id": "asset_dd8d85ee7e",
+      "sceneNumber": 5,
+      "type": "generated_image",
+      "description": "text_graphic: CTA card",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    },
+    {
+      "id": "asset_9fb72c6e76",
+      "sceneNumber": 5,
+      "type": "generated_image",
+      "description": "text_graphic: disclosure chips",
+      "synthetic": true,
+      "status": "placeholder",
+      "uri": null,
+      "sourceNote": "synthetic asset - no physical product was used, worn, or tested"
+    }
+  ],
+  "allSynthetic": true,
+  "createdAt": "2026-08-20T09:23:32.346Z"
+}

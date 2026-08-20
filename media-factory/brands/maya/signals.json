@@ -1,0 +1,85 @@
+{
+  "_README": [
+    "PLACEHOLDER signals shipped so the pipeline runs offline.",
+    "Every source URL uses the reserved .invalid TLD, which can never resolve, and",
+    "capturedAt is the 1970 sentinel meaning 'never actually observed'. The scout",
+    "marks any opportunity built on these as PLACEHOLDER EVIDENCE.",
+    "Replace each entry with something you observed yourself: real URL, real",
+    "capture timestamp, and metrics you can defend. The scout ranks signals; it",
+    "never authors them, so an unreplaced placeholder cannot pass as trend data."
+  ],
+  "signals": [
+    {
+      "id": "sig_maya_ai_makeup_look",
+      "topic": "AI chooses a 10-minute makeup look",
+      "niche": "beauty + AI + beauty tech",
+      "source": {
+        "id": "src_placeholder_maya_1",
+        "url": "https://operator-notes.invalid/maya/ai-chooses-look",
+        "title": "PLACEHOLDER - replace with the post, dashboard or report you observed",
+        "publisher": "operator note",
+        "capturedAt": "1970-01-01T00:00:00.000Z",
+        "notes": "Template value, not observed data. Replace before treating this score as a decision."
+      },
+      "metrics": {
+        "attention": 0.8,
+        "growth": 0.75,
+        "commercialIntent": 0.7,
+        "monetizationPotential": 0.8,
+        "contentRepeatability": 0.9,
+        "productOpportunity": 0.6,
+        "saturation": 0.35,
+        "risk": 0.2
+      },
+      "metricBasis": "PLACEHOLDER template values, not measured"
+    },
+    {
+      "id": "sig_maya_shade_match",
+      "topic": "Why AI shade matching still misses deep tones",
+      "niche": "beauty + AI + beauty tech",
+      "source": {
+        "id": "src_placeholder_maya_2",
+        "url": "https://operator-notes.invalid/maya/shade-match",
+        "title": "PLACEHOLDER - replace with the source you observed",
+        "publisher": "operator note",
+        "capturedAt": "1970-01-01T00:00:00.000Z",
+        "notes": "Template value, not observed data."
+      },
+      "metrics": {
+        "attention": 0.7,
+        "growth": 0.6,
+        "commercialIntent": 0.85,
+        "monetizationPotential": 0.85,
+        "contentRepeatability": 0.6,
+        "productOpportunity": 0.7,
+        "saturation": 0.5,
+        "risk": 0.35
+      },
+      "metricBasis": "PLACEHOLDER template values, not measured"
+    },
+    {
+      "id": "sig_maya_skin_analysis_apps",
+      "topic": "What skin analysis apps can and cannot see",
+      "niche": "beauty + AI + beauty tech",
+      "source": {
+        "id": "src_placeholder_maya_3",
+        "url": "https://operator-notes.invalid/maya/skin-analysis",
+        "title": "PLACEHOLDER - replace with the source you observed",
+        "publisher": "operator note",
+        "capturedAt": "1970-01-01T00:00:00.000Z",
+        "notes": "Template value, not observed data. Skin analysis edges toward health claims - keep risk high."
+      },
+      "metrics": {
+        "attention": 0.6,
+        "growth": 0.8,
+        "commercialIntent": 0.45,
+        "monetizationPotential": 0.4,
+        "contentRepeatability": 0.75,
+        "productOpportunity": 0.5,
+        "saturation": 0.3,
+        "risk": 0.6
+      },
+      "metricBasis": "PLACEHOLDER template values, not measured"
+    }
+  ]
+}

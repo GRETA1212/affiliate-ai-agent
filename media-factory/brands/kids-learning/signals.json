@@ -1,0 +1,56 @@
+{
+  "_README": [
+    "PLACEHOLDER signals. Same rules as the other brands: .invalid URLs, 1970",
+    "sentinel timestamps, and template metrics. Replace with observed evidence."
+  ],
+  "signals": [
+    {
+      "id": "sig_kids_counting_by_tens",
+      "topic": "Counting by tens with everyday objects",
+      "niche": "educational short videos for children",
+      "source": {
+        "id": "src_placeholder_kids_1",
+        "url": "https://operator-notes.invalid/kids/counting-by-tens",
+        "title": "PLACEHOLDER - replace with the source you observed",
+        "publisher": "operator note",
+        "capturedAt": "1970-01-01T00:00:00.000Z",
+        "notes": "Template value, not observed data."
+      },
+      "metrics": {
+        "attention": 0.66,
+        "growth": 0.55,
+        "commercialIntent": 0.2,
+        "monetizationPotential": 0.45,
+        "contentRepeatability": 0.95,
+        "productOpportunity": 0.6,
+        "saturation": 0.5,
+        "risk": 0.12
+      },
+      "metricBasis": "PLACEHOLDER template values, not measured"
+    },
+    {
+      "id": "sig_kids_shapes_in_the_kitchen",
+      "topic": "Finding shapes in the kitchen",
+      "niche": "educational short videos for children",
+      "source": {
+        "id": "src_placeholder_kids_2",
+        "url": "https://operator-notes.invalid/kids/shapes",
+        "title": "PLACEHOLDER - replace with the source you observed",
+        "publisher": "operator note",
+        "capturedAt": "1970-01-01T00:00:00.000Z",
+        "notes": "Template value, not observed data."
+      },
+      "metrics": {
+        "attention": 0.58,
+        "growth": 0.49,
+        "commercialIntent": 0.18,
+        "monetizationPotential": 0.38,
+        "contentRepeatability": 0.88,
+        "productOpportunity": 0.45,
+        "saturation": 0.4,
+        "risk": 0.1
+      },
+      "metricBasis": "PLACEHOLDER template values, not measured"
+    }
+  ]
+}

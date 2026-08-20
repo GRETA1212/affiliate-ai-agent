@@ -1,0 +1,33 @@
+{
+  "name": "media-factory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-brand AI media factory: topic -> brief -> script -> storyboard -> assets -> render -> QA -> publish manifest",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "factory": "tsx apps/cli/index.ts",
+    "demo": "tsx apps/cli/index.ts pipeline --brand maya --topic \"AI chooses a 10-minute makeup look\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "remotion:studio": "remotion studio packages/renderer/remotion/index.ts",
+    "remotion:ensure-browser": "remotion browser ensure"
+  },
+  "dependencies": {
+    "@langchain/langgraph": "^0.4.9",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "job_fe9b187f63",
+  "brandId": "maya",
+  "storyboardId": "sb_871c8a82fd",
+  "status": "rendered",
+  "backend": "ffmpeg",
+  "outputPath": "/home/claude/media-factory/output/job_fe9b187f63/maya-job_fe9b187f63.mp4",
+  "thumbnailPath": "/home/claude/media-factory/output/job_fe9b187f63/thumbnail.png",
+  "durationSeconds": 30.03,
+  "error": null,
+  "createdAt": "2026-08-20T09:23:54.915Z"
+}

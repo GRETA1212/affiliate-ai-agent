@@ -1,0 +1,51 @@
+{
+  "id": "script_fe9b187f63",
+  "briefId": "brief_fe9b187f63",
+  "brandId": "maya",
+  "title": "Maya.exe: AI chooses a 10-minute makeup look",
+  "hook": "An AI planned a 10-minute makeup look. Here's where it slips.",
+  "cta": "Full breakdown is in the link in bio",
+  "lines": [
+    {
+      "sceneNumber": 1,
+      "voiceover": "An AI planned a 10-minute makeup look. Here's where it slips.",
+      "onScreenText": "THE PLAN",
+      "durationSeconds": 6.54,
+      "sourceId": null
+    },
+    {
+      "sceneNumber": 2,
+      "voiceover": "One pass at a 10-minute makeup look. No edits.",
+      "onScreenText": "THE SETUP",
+      "durationSeconds": 5.45,
+      "sourceId": null
+    },
+    {
+      "sceneNumber": 3,
+      "voiceover": "It only knows what it was shown. The rest is a guess.",
+      "onScreenText": "WHERE IT SLIPS",
+      "durationSeconds": 7.09,
+      "sourceId": null
+    },
+    {
+      "sceneNumber": 4,
+      "voiceover": "This is a rendered mockup. Nothing was filmed or tested.",
+      "onScreenText": "RENDERED PLAN, NOT A TEST",
+      "durationSeconds": 6,
+      "sourceId": null
+    },
+    {
+      "sceneNumber": 5,
+      "voiceover": "Full breakdown is in the link in bio.",
+      "onScreenText": "FULL BREAKDOWN",
+      "durationSeconds": 4.92,
+      "sourceId": null
+    }
+  ],
+  "totalDurationSeconds": 30,
+  "disclosures": [
+    "Virtual AI creator",
+    "#ad - affiliate link"
+  ],
+  "createdAt": "2026-08-20T09:23:32.337Z"
+}

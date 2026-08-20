@@ -1,0 +1,22 @@
+{
+  "_README": [
+    "Research corpus for the kids brand. Same rules as every other brand:",
+    "claims ship EMPTY, and only sources on approvedDomains may ever be cited."
+  ],
+  "approvedDomains": ["support.google.com", "ftc.gov"],
+  "sources": [
+    {
+      "id": "src_youtube_made_for_kids",
+      "url": "https://support.google.com/youtube/answer/9528076",
+      "title": "YouTube: setting your audience as made for kids",
+      "publisher": "Google",
+      "capturedAt": "1970-01-01T00:00:00.000Z",
+      "notes": "Reference for the made-for-kids upload setting. Confirm current policy before publishing."
+    }
+  ],
+  "claims": [],
+  "assumptions": [
+    "The child is watching with an adult nearby",
+    "Objects on screen are things a child can find at home"
+  ]
+}
