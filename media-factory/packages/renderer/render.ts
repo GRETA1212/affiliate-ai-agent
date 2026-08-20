@@ -10,6 +10,7 @@ import { thumbnailFrame } from './build-render-input.ts';
 
 const run = promisify(execFile);
 const here = dirname(fileURLToPath(import.meta.url));
+const WINDOWS = process.platform === 'win32';
 
 /**
  * Render dispatcher.
@@ -40,10 +41,23 @@ export function renderChoice(): RendererChoice {
   return 'auto';
 }
 
+/**
+ * Run the project-local CLI. On Windows `npx` resolves through npx.cmd, which
+ * `execFile()` cannot launch without a shell. PowerShell can run the same
+ * command successfully, so use the Windows command shell only for this static
+ * internal CLI invocation.
+ */
+async function runNpx(args: string[], options: { timeout: number; maxBuffer?: number } = { timeout: 120_000 }): Promise<void> {
+  await run('npx', args, {
+    ...options,
+    ...(WINDOWS ? { shell: true } : {}),
+  });
+}
+
 /** Remotion can only render if its browser is already present locally. */
 export async function remotionBrowserAvailable(): Promise<boolean> {
   try {
-    await run('npx', ['remotion', 'browser', 'ensure'], { timeout: 120_000 });
+    await runNpx(['remotion', 'browser', 'ensure'], { timeout: 120_000 });
     return true;
   } catch {
     return false;
@@ -52,8 +66,7 @@ export async function remotionBrowserAvailable(): Promise<boolean> {
 
 async function renderWithRemotion(input: RenderInput, propsPath: string, outPath: string): Promise<void> {
   const entry = join(here, 'remotion', 'index.ts');
-  await run(
-    'npx',
+  await runNpx(
     ['remotion', 'render', entry, 'VerticalVideo', outPath, `--props=${propsPath}`, '--log=error'],
     { timeout: 900_000, maxBuffer: 1024 * 1024 * 32 },
   );
