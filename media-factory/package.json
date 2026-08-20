@@ -8,6 +8,7 @@
   "scripts": {
     "factory": "tsx apps/cli/index.ts",
     "demo": "tsx apps/cli/index.ts pipeline --brand maya --topic \"AI chooses a 10-minute makeup look\"",
+    "runway:smoke": "tsx scripts/runway-smoke.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
