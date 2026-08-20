@@ -1,6 +1,12 @@
 import { buildMockProvider } from '../../content/mock-content.ts';
+import { loadLocalEnv } from '../env.ts';
 import { AnthropicProvider, OllamaProvider, OpenAiProvider } from './http.ts';
 import { LlmError, type LlmProvider } from './provider.ts';
+
+// CLI users are explicitly told to configure .env. Load it once here before
+// provider selection; shell/CI variables still win because loadLocalEnv never
+// overwrites an existing process.env value.
+loadLocalEnv();
 
 export type ProviderName = 'mock' | 'anthropic' | 'openai' | 'ollama';
 
