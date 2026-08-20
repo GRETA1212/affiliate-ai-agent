@@ -20,6 +20,7 @@ import { planContent } from '../agents/content-strategist.ts';
 import { writeScript } from '../agents/script-agent.ts';
 import { buildStoryboard } from '../agents/storyboard-agent.ts';
 import { planAssets, type AssetMode } from '../agents/asset-planner.ts';
+import { directAssets } from '../agents/asset-director.ts';
 import { runQaAgent } from '../agents/qa-agent.ts';
 import { runPublishingPlanner } from '../agents/publishing-planner.ts';
 import { buildRenderInput } from '../renderer/build-render-input.ts';
@@ -134,7 +135,14 @@ export function buildFactoryGraph(options: BuildGraphOptions) {
     })
 
     .addNode('assets', async (state) => {
-      const assetPlan = planAssets({ storyboard: state.storyboard!, mode: state.assetMode });
+      const plannedAssets = planAssets({ storyboard: state.storyboard!, mode: state.assetMode });
+      const directed = await directAssets({
+        brand: state.brand,
+        storyboard: state.storyboard!,
+        assetPlan: plannedAssets,
+        brandsDirectory: options.brandsDirectory,
+      });
+      const assetPlan = directed.assetPlan;
       const renderInput = buildRenderInput({
         jobId: state.jobId,
         brand: state.brand,
@@ -143,7 +151,7 @@ export function buildFactoryGraph(options: BuildGraphOptions) {
         storyboard: state.storyboard!,
         assetPlan,
       });
-      return { steps: ['assets'], assetPlan, renderInput };
+      return { steps: ['assets'], assetPlan, renderInput, warnings: directed.warnings };
     })
 
     /* -- render ------------------------------------------------------------ */
