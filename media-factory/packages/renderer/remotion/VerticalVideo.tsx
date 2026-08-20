@@ -1,5 +1,15 @@
 import React from 'react';
-import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import {
+  AbsoluteFill,
+  Audio,
+  Img,
+  OffthreadVideo,
+  Sequence,
+  interpolate,
+  staticFile,
+  useCurrentFrame,
+  useVideoConfig,
+} from 'remotion';
 import type { RenderInput, RenderScene } from '../../core/types.ts';
 import { HOOK_CHIP_MAX_CHARS, truncateWords } from '../../core/text.ts';
 
@@ -16,6 +26,12 @@ const SAFE_TOP = 260;
 const SAFE_BOTTOM = 420;
 const CAPTION_SAFE_WIDTH = 920;
 const CAPTION_MIN_FONT_SIZE = 42;
+
+type RuntimeRenderScene = RenderScene & {
+  assetUri?: string | null;
+  assetSourceNote?: string | null;
+  assetMediaKind?: 'image' | 'video' | 'graphic' | null;
+};
 
 function fitCaptionFontSize(lines: string[], fontFamily: string, initialSize: number): number {
   if (typeof document === 'undefined') return initialSize;
@@ -35,7 +51,8 @@ export const VerticalVideo: React.FC<{ input: RenderInput }> = ({ input }) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: theme.background }}>
-      {input.scenes.map((scene) => {
+      {input.scenes.map((rawScene) => {
+        const scene = rawScene as RuntimeRenderScene;
         const from = cursor;
         cursor += scene.durationFrames;
         return (
@@ -47,14 +64,14 @@ export const VerticalVideo: React.FC<{ input: RenderInput }> = ({ input }) => {
 
       <BadgeRail input={input} />
 
-      {/* Audio bed. When no VO track exists yet the composition still runs at
-          the exact final length, so timing review is honest before audio. */}
+      {/* Optional separate VO/music bed. Provider video audio is used only when
+          no separate audio track is configured, preventing doubled speech. */}
       {input.audio.trackPath ? <Audio src={staticFile(input.audio.trackPath)} /> : null}
     </AbsoluteFill>
   );
 };
 
-const SceneLayer: React.FC<{ scene: RenderScene; input: RenderInput }> = ({ scene, input }) => {
+const SceneLayer: React.FC<{ scene: RuntimeRenderScene; input: RenderInput }> = ({ scene, input }) => {
   const frame = useCurrentFrame();
   const { theme } = input;
   const captionFontSize = fitCaptionFontSize(scene.captionLines, theme.displayFont, scene.isCta ? 92 : 78);
@@ -77,7 +94,7 @@ const SceneLayer: React.FC<{ scene: RenderScene; input: RenderInput }> = ({ scen
 
   return (
     <AbsoluteFill style={{ opacity: fadeIn, transform: `translateX(${push + whip}px)` }}>
-      <PlaceholderVisual scene={scene} input={input} />
+      <SceneVisual scene={scene} input={input} />
 
       <AbsoluteFill
         style={{
@@ -99,7 +116,7 @@ const SceneLayer: React.FC<{ scene: RenderScene; input: RenderInput }> = ({ scen
             fontWeight: 700,
             color: theme.text,
             textAlign: 'center',
-            textShadow: '0 6px 30px rgba(0,0,0,0.55)',
+            textShadow: '0 6px 30px rgba(0,0,0,0.62)',
           }}
         >
           {scene.captionLines.map((line, i) => (
@@ -128,13 +145,63 @@ const SceneLayer: React.FC<{ scene: RenderScene; input: RenderInput }> = ({ scen
   );
 };
 
+const SceneVisual: React.FC<{ scene: RuntimeRenderScene; input: RenderInput }> = ({ scene, input }) => {
+  const frame = useCurrentFrame();
+  const uri = scene.assetUri ?? null;
+
+  if (!uri || scene.assetMediaKind === 'graphic') {
+    return <PlaceholderVisual scene={scene} input={input} />;
+  }
+
+  const zoom = interpolate(
+    frame,
+    [0, Math.max(1, scene.durationFrames - 1)],
+    [1.015, scene.assetMediaKind === 'image' ? 1.075 : 1.035],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+  );
+
+  return (
+    <AbsoluteFill style={{ overflow: 'hidden', backgroundColor: input.theme.background }}>
+      {scene.assetMediaKind === 'video' ? (
+        <OffthreadVideo
+          src={uri}
+          volume={input.audio.trackPath ? 0 : 1}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transform: `scale(${zoom})`,
+          }}
+        />
+      ) : (
+        <Img
+          src={uri}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transform: `scale(${zoom})`,
+          }}
+        />
+      )}
+
+      {/* Real media still needs a controlled contrast layer so captions and
+          disclosures remain legible without flattening the image into a demo UI. */}
+      <AbsoluteFill
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(8,5,14,0.28) 0%, rgba(8,5,14,0.06) 32%, rgba(8,5,14,0.18) 58%, rgba(8,5,14,0.58) 100%)',
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
 /**
- * Until real art exists, each scene renders a deterministic branded frame that
- * *names the asset it is standing in for*. A reviewer can see at a glance that
- * scene 3 is waiting on product b-roll rather than mistaking a pretty gradient
- * for finished work.
+ * If a provider is unavailable or fails, the scene stays explicitly marked as
+ * a placeholder. A reviewer can never confuse a gradient with generated media.
  */
-const PlaceholderVisual: React.FC<{ scene: RenderScene; input: RenderInput }> = ({ scene, input }) => {
+const PlaceholderVisual: React.FC<{ scene: RuntimeRenderScene; input: RenderInput }> = ({ scene, input }) => {
   const { theme } = input;
   const isLesson = theme.signature === 'lesson_stage';
   const tilt = isLesson ? 0 : (scene.index % 2 === 0 ? -8 : 8);
