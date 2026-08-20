@@ -60,9 +60,14 @@ const SceneLayer: React.FC<{ scene: RenderScene; input: RenderInput }> = ({ scen
   const captionFontSize = fitCaptionFontSize(scene.captionLines, theme.displayFont, scene.isCta ? 92 : 78);
 
   // Transitions are entry effects on each scene, kept cheap and legible.
-  const fadeIn = interpolate(frame, [0, scene.transition === 'fade' ? 12 : 4], [0, 1], {
-    extrapolateRight: 'clamp',
-  });
+  // The opening scene must be fully visible at frame 0. Fading it up from
+  // zero leaves the first frame blank, and platforms often use frame 0 as the
+  // poster image - a black poster on the hook is the worst place to lose a
+  // viewer. Later scenes still fade, where it reads as an intentional cut.
+  const fadeInEnd = scene.transition === 'fade' ? 12 : 4;
+  const fadeIn = scene.isHook
+    ? 1
+    : interpolate(frame, [0, fadeInEnd], [0, 1], { extrapolateRight: 'clamp' });
   const push = scene.transition === 'push'
     ? interpolate(frame, [0, 10], [60, 0], { extrapolateRight: 'clamp' })
     : 0;
