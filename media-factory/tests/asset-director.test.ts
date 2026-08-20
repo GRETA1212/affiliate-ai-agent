@@ -92,6 +92,7 @@ function fakeProvider(id: 'heygen' | 'runway'): AssetGenerationProvider {
             uri: 'https://media.example.test/maya-hook.mp4',
             mediaKind: 'video' as const,
             provider: 'heygen',
+            note: 'avatar talking-head; duration=9.64s',
           }
         : {
             uri: `https://media.example.test/scene-${context.scene.sceneNumber}.jpg`,
@@ -125,6 +126,7 @@ describe('asset director', () => {
     expect(hookVisual?.status).toBe('ready');
     expect(hookVisual?.uri).toMatch(/\.mp4$/);
     expect(hookVisual?.sourceNote).toMatch(/provider:heygen/);
+    expect(hookVisual?.sourceNote).toMatch(/duration=9\.64s/);
 
     expect(broll?.status).toBe('ready');
     expect(broll?.uri).toMatch(/\.jpg$/);
@@ -145,7 +147,7 @@ describe('asset director', () => {
     expect(visualAssets.every((asset) => asset.uri === null)).toBe(true);
   });
 
-  it('hands real provider media through to the Remotion runtime contract', async () => {
+  it('hands real provider media and provider timing through to Remotion', async () => {
     const planned = planAssets({ storyboard, mode: 'synthetic' });
     const directed = await directAssets({
       brand: maya,
@@ -170,7 +172,10 @@ describe('asset director', () => {
 
     expect(scenes[0]?.assetUri).toBe('https://media.example.test/maya-hook.mp4');
     expect(scenes[0]?.assetMediaKind).toBe('video');
+    expect(scenes[0]?.durationSeconds).toBe(9.64);
     expect(scenes[1]?.assetUri).toBe('https://media.example.test/scene-2.jpg');
     expect(scenes[1]?.assetMediaKind).toBe('image');
+    expect(input.audio.placeholderSilence).toBe(false);
+    expect(input.totalFrames).toBe(Math.round(9.64 * 30) + 8 * 30 + 8 * 30);
   });
 });
