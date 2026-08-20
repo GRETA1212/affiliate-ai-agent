@@ -54,14 +54,19 @@ export function buildRenderInput(args: {
     const asset = assets.find((item) => item.status === 'ready' && Boolean(item.uri))
       ?? assets.find((item) => item.type !== 'text_graphic')
       ?? assets[0];
+    const kind = mediaKind(asset);
 
-    // Frames are the unit of truth. Rounding once here keeps the audio bed, the
-    // caption timings and the total length in agreement.
-    const durationFrames = Math.max(1, Math.round(scene.durationSeconds * FPS));
+    // A provider talking-head clip has real audio and therefore real duration.
+    // Trust that duration instead of the pre-generation speaking estimate or
+    // Maya can be cut off mid-word. Still/image scenes keep storyboard timing.
+    const generatedDuration = kind === 'video' ? providerDuration(asset) : null;
+    const durationSeconds = generatedDuration ?? scene.durationSeconds;
+    const durationFrames = Math.max(1, Math.round(durationSeconds * FPS));
+
     return {
       index,
       sceneNumber: scene.sceneNumber,
-      durationSeconds: scene.durationSeconds,
+      durationSeconds,
       durationFrames,
       onScreenText: scene.onScreenText,
       captionLines: wrapText(scene.onScreenText, brand.rules.maxCaptionCharsPerLine),
@@ -73,7 +78,7 @@ export function buildRenderInput(args: {
       isCta: scene.sceneNumber === lastSceneNumber,
       assetUri: asset?.uri ?? null,
       assetSourceNote: asset?.sourceNote ?? null,
-      assetMediaKind: mediaKind(asset),
+      assetMediaKind: kind,
     };
   });
 
@@ -82,6 +87,9 @@ export function buildRenderInput(args: {
   const disclosure = brand.rules.requireAiDisclosure ? brand.rules.aiDisclosureText : null;
   const paid = brief.monetizationPath === 'affiliate' || brief.monetizationPath === 'sponsorship';
   const affiliate = brand.rules.requireAffiliateDisclosure && paid ? brand.rules.affiliateDisclosureText : null;
+  const embeddedProviderVoice = candidateScenes.some(
+    (scene) => scene.assetMediaKind === 'video' && /provider:heygen/i.test(scene.assetSourceNote ?? ''),
+  );
 
   // Validate the stable contract first. Zod strips the runtime extension, so we
   // add it back after validation. JSON.stringify then preserves the real media
@@ -102,7 +110,7 @@ export function buildRenderInput(args: {
     scenes: candidateScenes,
     audio: {
       trackPath: args.audioTrackPath ?? null,
-      placeholderSilence: !args.audioTrackPath,
+      placeholderSilence: !args.audioTrackPath && !embeddedProviderVoice,
     },
   });
 
@@ -139,6 +147,14 @@ function mediaKind(asset: Asset | undefined): RuntimeMediaFields['assetMediaKind
   if (/\.(mp4|webm|mov)$/.test(uri)) return 'video';
   if (/\.(png|jpe?g|webp|gif)$/.test(uri)) return 'image';
   return asset.uri ? 'image' : null;
+}
+
+function providerDuration(asset: Asset | undefined): number | null {
+  if (!asset?.sourceNote) return null;
+  const match = asset.sourceNote.match(/duration\s*[=:]\s*([0-9]+(?:\.[0-9]+)?)\s*s?/i);
+  if (!match) return null;
+  const value = Number(match[1]);
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 /** Frame index where each scene starts. Used for thumbnails and QA. */
