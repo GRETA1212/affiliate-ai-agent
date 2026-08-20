@@ -8,7 +8,7 @@
   },
   "runway": {
     "enabled": true,
-    "model": "gemini_image3_pro",
-    "ratio": "1080:1920"
+    "model": "gen4_image",
+    "ratio": "720:1280"
   }
 }
