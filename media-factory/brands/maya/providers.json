@@ -1,0 +1,14 @@
+{
+  "heygen": {
+    "enabled": true,
+    "avatarId": "330fb2292db947f49c368e0b6cee3381",
+    "voiceId": "8T0CANvzMI4ur5VlwrTv",
+    "resolution": "720p",
+    "talkingHeadSceneNumbers": [1]
+  },
+  "runway": {
+    "enabled": true,
+    "model": "gemini_image3_pro",
+    "ratio": "1080:1920"
+  }
+}
