@@ -1,0 +1,11 @@
+{
+  "campaign": "taskade-small-business",
+  "title": "Taskade Launch Video 01",
+  "script": "A lot of small businesses use one tool for notes, another for tasks, another for AI, and then still follow up manually. I wanted to see if Taskade could simplify that. I built a basic lead follow-up workflow: a new request comes in, the AI classifies it, creates the next task, drafts a response, and puts it into a pipeline for human review. I would not let AI send important commercial replies by itself, but for organizing repetitive work this is actually useful. I put the full test and the tool link on my page.",
+  "avatar_image": "assets/avatar/maya.png",
+  "voice_audio": "assets/audio/taskade-video-01.wav",
+  "output": "outputs/taskade-video-01.mp4",
+  "aspect_ratio": "9:16",
+  "resolution": "720x1280",
+  "affiliate_disclosure": "Affiliate disclosure: I may earn a commission if you buy through my link, at no extra cost to you."
+}
