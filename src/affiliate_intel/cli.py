@@ -7,6 +7,7 @@ from dataclasses import asdict
 from .db import Repository
 from .scanner import load_candidates, normalize_candidates
 from .scoring import score_program
+from .video_factory import build_plan, load_video_job, plan_to_dict
 
 
 def main() -> None:
@@ -21,6 +22,10 @@ def main() -> None:
 
     score = sub.add_parser("score-file")
     score.add_argument("path")
+
+    video_plan = sub.add_parser("video-plan")
+    video_plan.add_argument("path")
+    video_plan.add_argument("--musetalk-root", default="vendor/MuseTalk")
 
     args = parser.parse_args()
     repo = Repository(args.db)
@@ -59,6 +64,13 @@ def main() -> None:
                 indent=2,
             )
         )
+        return
+
+    if args.command == "video-plan":
+        job = load_video_job(args.path)
+        plan = build_plan(job, musetalk_root=args.musetalk_root)
+        print(json.dumps(plan_to_dict(plan), indent=2))
+        return
 
 
 if __name__ == "__main__":
