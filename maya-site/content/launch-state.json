@@ -1,0 +1,36 @@
+{
+  "brand": "Maya.exe",
+  "status": "ready_for_production_deploy",
+  "updated_at": "2026-09-06T23:16:00+02:00",
+  "site": {
+    "production_url": "https://maya-exe.vercel.app",
+    "project_id": "prj_SX8g02SukEU1Vs77nDSFDL3oYOmt",
+    "vercel_team_id": "team_Px8b8Y3imWCFQMeeER7xXoOr",
+    "source_branch": "main",
+    "root_directory": "maya-site",
+    "deploy_workflow": ".github/workflows/deploy-maya.yml",
+    "deploy_blocker": "GitHub Actions secret VERCEL_TOKEN is not configured"
+  },
+  "v001": {
+    "title": "AI Picks My Look",
+    "route": "/shop-the-look/ai-picked-makeup/",
+    "format": "9:16",
+    "avatar": {
+      "name": "Maya.exe",
+      "heygen_group_id": "f9b615a90139450db59303efe3caae24",
+      "heygen_look_id": "330fb2292db947f49c368e0b6cee3381",
+      "type": "photo_avatar"
+    },
+    "video": {
+      "title": "Maya.exe V001 Launch — AI Picks My Look",
+      "heygen_video_id": "a50b2cfefe6dc72c55b0f234119b65eb",
+      "heygen_page": "https://app.heygen.com/videos/a50b2cfefe6dc72c55b0f234119b65eb",
+      "duration_seconds": 16.1959,
+      "status": "completed"
+    },
+    "product_state": "unverified",
+    "affiliate_links_enabled": false,
+    "cta": "Full experiment and product list coming to Maya.exe",
+    "disclosure": "Maya.exe is a virtual AI creator. Products are linked only after verification."
+  }
+}
