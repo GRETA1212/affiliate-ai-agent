@@ -1,0 +1,215 @@
+version: 1
+brand: Maya.exe
+market_focus: Italy
+currency: EUR
+
+orchestrator:
+  goal: "Run the Maya business loop using only verified inputs and measurable outputs."
+  inputs: [trend_report, product_candidates, content_backlog, metrics, compliance_state]
+  outputs: [daily_queue, approvals_required, blocked_items, next_experiments]
+  rules:
+    - "Select no more than 2 new content experiments per day until enough data exists to justify more."
+    - "Never treat missing metrics as zero."
+    - "Escalate spending, legal/KYC changes, and public claims for human approval."
+
+agents:
+  - id: trend_scout
+    name: Trend Scout
+    goal: "Find current Italy beauty, beauty-tech, creator-tool, and social-commerce opportunities."
+    required_sources:
+      - "TikTok official/Creative Center or Creator Center when accessible"
+      - "YouTube Studio Trends/Inspiration when accessible"
+      - "Google Trends"
+      - "official platform/seller documentation for current rules"
+    output_schema:
+      opportunity: string
+      evidence_date: string
+      sources: list
+      demand_signal: string
+      trend_velocity: string
+      buyer_intent: string
+      content_repeatability: string
+      risk_notes: string
+      confidence: "low|medium|high"
+    scoring:
+      attention: 25
+      growth: 20
+      buyer_intent: 20
+      affiliate_economics: 15
+      content_repeatability: 10
+      owned_offer_upsell: 10
+      saturation_risk_penalty: true
+
+  - id: product_scout
+    name: Product Scout
+    goal: "Choose products because the demand and economics work, not because they look trendy."
+    required_fields:
+      - exact_product_name
+      - seller_or_merchant
+      - current_price
+      - commission_rate
+      - estimated_commission_eur_per_order
+      - product_url
+      - seller_quality_signal
+      - sample_available
+      - visual_demo_angle
+      - claims_risk
+      - evidence_date
+      - source
+    output: "ranked_product_shortlist"
+    scoring:
+      demand: 30
+      visual_demo: 25
+      commission_eur: 20
+      seller_quality: 15
+      maya_fit: 10
+    hard_block:
+      - "unverified listing"
+      - "unsupported medical/skin claims"
+      - "fake or unverifiable discount"
+      - "unclear seller identity/quality"
+      - "product cannot be represented honestly in the planned creative"
+
+  - id: content_strategist
+    name: Content Strategist
+    goal: "Convert a verified opportunity into a repeatable content experiment."
+    output_fields:
+      - content_id
+      - audience_problem
+      - hook_a
+      - hook_b
+      - story_arc
+      - proof_or_demo_needed
+      - monetization_path
+      - destination_page
+      - success_metric
+    rule: "Content first, commerce second. The first 3 seconds must work even if the viewer never buys."
+
+  - id: script_producer
+    name: Script Producer
+    goal: "Produce 9:16 TikTok/YouTube Shorts packages."
+    output_fields:
+      - spoken_script
+      - shot_list
+      - on_screen_text
+      - caption_tiktok
+      - caption_youtube
+      - disclosure
+      - cta
+      - b_roll_required
+      - product_proof_required
+    rules:
+      - "Prefer 20-35 seconds for first tests unless evidence suggests otherwise."
+      - "Do not write 'I tested' without test evidence."
+      - "When Maya is synthetic/virtual, preserve visible disclosure where required."
+
+  - id: publishing_planner
+    name: Publishing Planner
+    goal: "Schedule, adapt, tag, and track every piece of content."
+    output_fields:
+      - content_id
+      - platform
+      - planned_date
+      - planned_time
+      - title_or_caption
+      - destination
+      - utm_source
+      - utm_medium
+      - utm_campaign
+      - utm_content
+    rules:
+      - "Reuse the same master creative across TikTok and Shorts when useful, but adapt CTA/link mechanics to each platform."
+      - "Never invent a clickable destination where the platform does not support one."
+
+  - id: commerce_compliance
+    name: Commerce & Compliance
+    goal: "Clear every monetized claim before publishing."
+    checks:
+      - exact affiliate destination verified
+      - price/discount verified on date of publication
+      - commission/affiliate relationship disclosed
+      - rel sponsored/nofollow on website links
+      - creator/account eligibility checked from current official source
+      - AI/virtual disclosure handled
+      - no unsupported efficacy/medical claims
+      - no fake review/testimonial/test
+    output: "approved|blocked|needs_human_review"
+
+  - id: funnel_agent
+    name: Funnel Agent
+    goal: "Map every high-intent video to one useful Maya website destination."
+    destinations:
+      - shop_the_look
+      - beauty_tool_guide
+      - product_comparison
+      - creator_kit
+      - beauty_business_service
+      - software_affiliate_guide
+    output_fields:
+      - page_slug
+      - page_goal
+      - hero_copy
+      - proof_sections
+      - cta
+      - disclosure
+      - tracking_requirements
+
+  - id: analytics_agent
+    name: Analytics Agent
+    goal: "Turn platform/site/commerce measurements into one comparable dataset."
+    required_metrics:
+      - views
+      - retention_or_watch_time
+      - engagement
+      - profile_visits
+      - site_sessions
+      - affiliate_clicks
+      - orders
+      - leads
+      - gross_revenue
+      - commission_revenue
+      - owned_product_revenue
+    derived_metrics:
+      - site_sessions_per_1000_views
+      - affiliate_click_rate
+      - order_conversion_rate
+      - revenue_per_1000_views
+    rules:
+      - "Unknown is not zero."
+      - "Do not compare formats until measurement windows are comparable."
+
+  - id: growth_optimizer
+    name: Growth Optimizer
+    goal: "Scale winners and stop wasting production time on losers."
+    default_rules:
+      - "Rank videos by revenue_per_1000_views when monetization data exists."
+      - "Before monetization data exists, use site_sessions_per_1000_views plus retention."
+      - "Top quartile: create 3 controlled variations."
+      - "Bottom quartile: pause unless there is a documented strategic reason to continue."
+    output: [scale_list, pause_list, next_test_matrix]
+
+  - id: b2b_sales_agent
+    name: B2B Sales Agent
+    goal: "Use Maya as proof to generate qualified leads from salons, makeup artists, beauty creators, and small beauty brands."
+    offer: "Maya Beauty Content System"
+    target_price_test_eur: 1500
+    rules:
+      - "Personalized outreach only; no mass spam."
+      - "Use public business information and a specific observed opportunity."
+      - "Never fabricate client results or case studies."
+    output_fields:
+      - prospect
+      - observed_problem
+      - personalized_idea
+      - outreach_message
+      - follow_up_date
+      - status
+
+human_approval_required_for:
+  - "any spend"
+  - "new paid software subscription"
+  - "purchase of physical products"
+  - "new affiliate agreement acceptance"
+  - "KYC/tax/bank/account-owner changes"
+  - "publishing a claim with material legal/health risk"
+  - "launching paid ads"
