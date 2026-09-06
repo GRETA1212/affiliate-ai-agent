@@ -1,7 +1,7 @@
 {
   "version": 1,
   "brand": "Maya.exe",
-  "updated_at": "2026-09-06T23:19:00+02:00",
+  "updated_at": "2026-09-06T23:20:00+02:00",
   "policy": {
     "canonical_queue": "maya-agents/runbooks/launch-queue-v001-v010.md",
     "max_new_experiments_per_day": 2,
@@ -29,12 +29,16 @@
     {
       "content_id": "V002",
       "title": "3 Things AI Got Wrong",
-      "production_state": "rendering",
+      "production_state": "blocked_generation_limit",
       "heygen_video_id": "11f0491307c481b45fb469fb7f1bb86c",
       "content_spec": "maya-site/content/video-002-3-things-ai-got-wrong.md",
       "commerce_state": "pre-commerce",
-      "publish_state": "hold_for_visual_proof_review",
-      "required_checks": [
+      "publish_state": "blocked",
+      "blockers": [
+        "HeyGen generation failed: AVATAR_IV_VIDEO_GENERATION_DURATION_LIMIT_REACHED",
+        "HeyGen account reports monthly Avatar IV limit reached"
+      ],
+      "required_checks_after_render": [
         "each of the three critiques is visibly supported by the final creative",
         "virtual AI creator disclosure is present where required",
         "no product-use, price, discount or performance claim is introduced"
@@ -43,10 +47,13 @@
     {
       "content_id": "EXP-BEAUTY-GADGET-01",
       "title": "Beauty Gadget: Worth It or Gimmick?",
-      "production_state": "rendering",
+      "production_state": "blocked_generation_limit",
       "heygen_video_id": "c2d7b5eece50c4ffd09b273a07368436",
       "source": "maya-site/content/shorts-batch-01.md",
       "publish_state": "backlog",
+      "blockers": [
+        "HeyGen generation failed: AVATAR_IV_VIDEO_GENERATION_DURATION_LIMIT_REACHED"
+      ],
       "note": "Generated before canonical V002 conflict was detected. Kept as a future experiment; must not be published under V002."
     }
   ]
