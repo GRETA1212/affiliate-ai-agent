@@ -1,12 +1,18 @@
 [project]
 name = "affiliate-intelligence-engine"
-version = "0.1.0"
-description = "Affiliate opportunity discovery, scoring, persistence, and campaign intelligence."
+version = "0.2.0"
+description = "Affiliate opportunity discovery, scoring, persistence, campaign tracking, and revenue intelligence."
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "fastapi>=0.116",
+  "uvicorn[standard]>=0.35",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+dev = [
+  "pytest>=8.0",
+  "httpx>=0.28",
+]
 
 [project.scripts]
 affiliate-intel = "affiliate_intel.cli:main"
