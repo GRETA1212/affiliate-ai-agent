@@ -1,15 +1,29 @@
 {
-  "version": 1,
+  "version": 2,
   "brand": "Maya.exe",
-  "updated_at": "2026-09-06T23:20:00+02:00",
+  "updated_at": "2026-09-06T23:24:00+02:00",
   "policy": {
     "canonical_queue": "maya-agents/runbooks/launch-queue-v001-v010.md",
+    "free_mode_runbook": "maya-agents/runbooks/free-mode-fallback.md",
     "max_new_experiments_per_day": 2,
     "publish_requires_platform_access": true,
     "never_invent_publish_timestamp": true,
     "unknown_metrics_remain_unknown": true,
     "affiliate_links_require_verified_listing": true,
-    "ai_creator_disclosure_required": true
+    "ai_creator_disclosure_required": true,
+    "fallback_order": ["heygen_avatar_video", "free_image_short", "hold"]
+  },
+  "providers": {
+    "heygen": {
+      "video_available": false,
+      "reason": "Monthly Avatar IV limit reached"
+    },
+    "runway": {
+      "plan": "Free",
+      "video_available": false,
+      "image_available": true,
+      "remaining_credits_observed": 54
+    }
   },
   "items": [
     {
@@ -29,16 +43,25 @@
     {
       "content_id": "V002",
       "title": "3 Things AI Got Wrong",
-      "production_state": "blocked_generation_limit",
-      "heygen_video_id": "11f0491307c481b45fb469fb7f1bb86c",
+      "preferred_mode": "heygen_avatar_video",
+      "production_mode": "free_image_short",
+      "production_state": "ready_for_visual_generation",
+      "failed_heygen_video_id": "11f0491307c481b45fb469fb7f1bb86c",
       "content_spec": "maya-site/content/video-002-3-things-ai-got-wrong.md",
+      "fallback_spec": "maya-agents/runbooks/free-mode-fallback.md",
       "commerce_state": "pre-commerce",
-      "publish_state": "blocked",
+      "publish_state": "prepare_assets",
       "blockers": [
-        "HeyGen generation failed: AVATAR_IV_VIDEO_GENERATION_DURATION_LIMIT_REACHED",
-        "HeyGen account reports monthly Avatar IV limit reached"
+        "HeyGen monthly Avatar IV limit reached",
+        "Runway video generation is not enabled on current Free plan"
       ],
-      "required_checks_after_render": [
+      "next_actions": [
+        "generate 4-6 non-product Maya visual cards/stills",
+        "assemble image-led 9:16 short",
+        "preserve Virtual AI creator disclosure",
+        "review the three critiques against the actual visuals"
+      ],
+      "required_checks_after_export": [
         "each of the three critiques is visibly supported by the final creative",
         "virtual AI creator disclosure is present where required",
         "no product-use, price, discount or performance claim is introduced"
@@ -47,14 +70,11 @@
     {
       "content_id": "EXP-BEAUTY-GADGET-01",
       "title": "Beauty Gadget: Worth It or Gimmick?",
-      "production_state": "blocked_generation_limit",
-      "heygen_video_id": "c2d7b5eece50c4ffd09b273a07368436",
+      "production_state": "backlog",
+      "failed_heygen_video_id": "c2d7b5eece50c4ffd09b273a07368436",
       "source": "maya-site/content/shorts-batch-01.md",
       "publish_state": "backlog",
-      "blockers": [
-        "HeyGen generation failed: AVATAR_IV_VIDEO_GENERATION_DURATION_LIMIT_REACHED"
-      ],
-      "note": "Generated before canonical V002 conflict was detected. Kept as a future experiment; must not be published under V002."
+      "note": "Generated before canonical V002 conflict was detected. Keep as a future experiment and never publish under V002."
     }
   ]
 }
