@@ -48,6 +48,16 @@ def _ffmpeg_bin_dir() -> str:
     return str(Path(ffmpeg).resolve().parent) if ffmpeg else ""
 
 
+def _musetalk_python(root: Path) -> Path:
+    windows = root / ".venv" / "Scripts" / "python.exe"
+    posix = root / ".venv" / "bin" / "python"
+    if windows.exists():
+        return windows
+    if posix.exists():
+        return posix
+    return Path(sys.executable)
+
+
 def build_plan(job: VideoJob, *, musetalk_root: str | Path = "vendor/MuseTalk") -> VideoFactoryPlan:
     musetalk_root = Path(musetalk_root).resolve()
     avatar = Path(job.avatar_image).resolve()
@@ -64,6 +74,8 @@ def build_plan(job: VideoJob, *, musetalk_root: str | Path = "vendor/MuseTalk") 
         missing_tools.append("ffmpeg")
     if not (musetalk_root / "scripts" / "inference.py").exists():
         missing_tools.append(f"MuseTalk checkout at {musetalk_root}")
+    if not ((musetalk_root / ".venv" / "Scripts" / "python.exe").exists() or (musetalk_root / ".venv" / "bin" / "python").exists()):
+        missing_tools.append(f"MuseTalk Python environment at {musetalk_root / '.venv'}")
     for required in (
         musetalk_root / "models" / "musetalkV15" / "unet.pth",
         musetalk_root / "models" / "musetalkV15" / "musetalk.json",
@@ -72,7 +84,7 @@ def build_plan(job: VideoJob, *, musetalk_root: str | Path = "vendor/MuseTalk") 
             missing_tools.append(f"MuseTalk model file {required}")
 
     musetalk_command = [
-        sys.executable,
+        str(_musetalk_python(musetalk_root)),
         "-m",
         "scripts.inference",
         "--inference_config",
@@ -89,24 +101,10 @@ def build_plan(job: VideoJob, *, musetalk_root: str | Path = "vendor/MuseTalk") 
         _ffmpeg_bin_dir(),
     ]
 
-    vf = (
-        "scale=720:1280:force_original_aspect_ratio=decrease,"
-        "pad=720:1280:(ow-iw)/2:(oh-ih)/2"
-    )
+    vf = "scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2"
     ffmpeg_command = [
-        "ffmpeg",
-        "-y",
-        "-i",
-        str(musetalk_result),
-        "-vf",
-        vf,
-        "-c:v",
-        "libx264",
-        "-c:a",
-        "aac",
-        "-movflags",
-        "+faststart",
-        str(output),
+        "ffmpeg", "-y", "-i", str(musetalk_result), "-vf", vf,
+        "-c:v", "libx264", "-c:a", "aac", "-movflags", "+faststart", str(output),
     ]
 
     return VideoFactoryPlan(
@@ -125,12 +123,11 @@ def _write_musetalk_config(plan: VideoFactoryPlan) -> None:
     plan.config_path.parent.mkdir(parents=True, exist_ok=True)
     avatar = str(Path(plan.job.avatar_image).resolve()).replace("\\", "/")
     audio = str(Path(plan.job.voice_audio).resolve()).replace("\\", "/")
-    result_name = plan.musetalk_result.name
     plan.config_path.write_text(
         "task_0:\n"
         f'  video_path: "{avatar}"\n'
         f'  audio_path: "{audio}"\n'
-        f'  result_name: "{result_name}"\n',
+        f'  result_name: "{plan.musetalk_result.name}"\n',
         encoding="utf-8",
     )
 
@@ -144,11 +141,9 @@ def render_video(job: VideoJob, *, musetalk_root: str | Path = "vendor/MuseTalk"
     output = Path(job.output).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     _write_musetalk_config(plan)
-
     subprocess.run(plan.musetalk_command, cwd=plan.musetalk_root, check=True)
     if not plan.musetalk_result.exists():
         raise RuntimeError(f"MuseTalk finished but expected output was not found: {plan.musetalk_result}")
-
     subprocess.run(plan.ffmpeg_command, check=True)
     if not output.exists():
         raise RuntimeError(f"FFmpeg finished but output was not found: {output}")
