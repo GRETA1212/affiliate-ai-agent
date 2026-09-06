@@ -4,23 +4,24 @@ import os
 import uuid
 
 import psycopg
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+TASKADE_AFFILIATE_URL = "https://www.taskade.com/?via=hsiax1"
 
-app = FastAPI(title="Affiliate Intelligence Engine", version="0.3.0")
+app = FastAPI(title="Affiliate Intelligence Engine", version="0.3.1")
 
 
 def connect():
     if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL is required in production")
+        return None
     return psycopg.connect(DATABASE_URL)
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "storage": "postgres"}
+    return {"status": "ok", "storage_configured": bool(DATABASE_URL)}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -50,38 +51,42 @@ def track_and_redirect(
     utm_campaign: str | None = Query(default=None),
     utm_content: str | None = Query(default=None),
 ) -> RedirectResponse:
-    with connect() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT affiliate_url, verification_status FROM affiliate_offers WHERE slug = %s",
-                (offer_slug,),
-            )
-            row = cur.fetchone()
-            if not row:
-                raise HTTPException(status_code=404, detail="Offer not found")
-            affiliate_url, verification_status = row
-            if verification_status != "verified":
-                raise HTTPException(status_code=409, detail="Offer is not verified for live traffic")
+    if offer_slug != "taskade":
+        return RedirectResponse(url="/", status_code=302)
 
-            click_id = uuid.uuid4()
-            cur.execute(
-                """INSERT INTO affiliate_clicks
-                (click_id, offer_slug, campaign_id, referrer, user_agent, utm_source, utm_medium, utm_campaign, utm_content)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                (
-                    click_id,
-                    offer_slug,
-                    campaign_id,
-                    request.headers.get("referer"),
-                    request.headers.get("user-agent"),
-                    utm_source,
-                    utm_medium,
-                    utm_campaign,
-                    utm_content,
-                ),
-            )
-        conn.commit()
+    click_id = uuid.uuid4()
+    tracked = False
+    conn = None
+    try:
+        conn = connect()
+        if conn is not None:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """INSERT INTO affiliate_clicks
+                    (click_id, offer_slug, campaign_id, referrer, user_agent, utm_source, utm_medium, utm_campaign, utm_content)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (
+                        click_id,
+                        offer_slug,
+                        campaign_id,
+                        request.headers.get("referer"),
+                        request.headers.get("user-agent"),
+                        utm_source,
+                        utm_medium,
+                        utm_campaign,
+                        utm_content,
+                    ),
+                )
+            conn.commit()
+            tracked = True
+    except Exception:
+        if conn is not None:
+            conn.rollback()
+    finally:
+        if conn is not None:
+            conn.close()
 
-    response = RedirectResponse(url=affiliate_url, status_code=302)
+    response = RedirectResponse(url=TASKADE_AFFILIATE_URL, status_code=302)
     response.headers["X-Affiliate-Click-ID"] = str(click_id)
+    response.headers["X-Affiliate-Tracked"] = "1" if tracked else "0"
     return response
