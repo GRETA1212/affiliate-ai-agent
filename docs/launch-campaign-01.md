@@ -1,6 +1,6 @@
 # Launch Campaign 01 — Taskade AI Agents for Small Business
 
-Status: READY FOR AFFILIATE ACCOUNT + CONTENT PRODUCTION
+Status: LIVE AFFILIATE LINK CONFIGURED + CONTENT PRODUCTION READY
 
 ## Why Taskade first
 
@@ -13,9 +13,9 @@ Verified on 2026-09-06 against Taskade's official partnership documentation:
 - partner signup is self-serve
 
 Source: https://www.taskade.com/learn/account/partnerships
-Partner signup: https://partners.taskade.com/
+Partner dashboard: https://partners.taskade.com/
 
-Do not publish a tracked `/go/taskade` link until the real Taskade referral URL has been copied into `affiliate_programs.affiliate_url`.
+Partner account confirmed on 2026-09-06. Live referral URL is now stored in `data/launch_offers.json` and may be used by the tracked `/go/taskade` route after the launch seed has been ingested into the runtime database.
 
 ## Target customer
 
@@ -46,7 +46,7 @@ Sections:
 9. Verdict
 10. Affiliate disclosure + CTA
 
-CTA route after affiliate link is configured:
+Tracked CTA:
 
 `/go/taskade?utm_source=website&utm_medium=affiliate&utm_campaign=taskade-small-business&utm_content=review-main`
 
@@ -92,7 +92,7 @@ UTM:
 - Never claim guaranteed revenue or productivity gains.
 - Always disclose affiliate relationships near the CTA.
 - Do not self-refer.
-- Use the real tracked `/go/taskade` route only after the partner URL is configured.
+- Route public affiliate clicks through `/go/taskade` so attribution is captured before redirecting to Taskade.
 - Measure clicks, paid conversions, EPC, and RPM before scaling.
 
 ## Kill / scale thresholds
@@ -108,7 +108,7 @@ Scale only when the campaign has positive commission revenue and its EPC/RPM is 
 
 ## Affiliate application sequence
 
-1. Taskade — self-serve account first
+1. Taskade — COMPLETE; live referral link configured
 2. Writesonic — no traffic minimum; application asks where it will be promoted
 3. Scalenut — apply after the launch page/social proof exists because its application explicitly asks for audience/social/website information
 
