@@ -1,11 +1,12 @@
 [project]
 name = "affiliate-intelligence-engine"
-version = "0.2.0"
+version = "0.3.0"
 description = "Affiliate opportunity discovery, scoring, persistence, campaign tracking, and revenue intelligence."
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.116",
   "uvicorn[standard]>=0.35",
+  "psycopg[binary]>=3.2",
 ]
 
 [project.optional-dependencies]
@@ -24,3 +25,6 @@ build-backend = "setuptools.build_meta"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.vercel]
+entrypoint = "src.affiliate_intel.production_api:app"
