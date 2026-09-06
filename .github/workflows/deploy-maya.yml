@@ -1,0 +1,69 @@
+name: deploy-maya
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "maya-site/**"
+      - ".github/workflows/deploy-maya.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-maya-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      VERCEL_PROJECT_ID: prj_SX8g02SukEU1Vs77nDSFDL3oYOmt
+      VERCEL_ORG_ID: team_Px8b8Y3imWCFQMeeER7xXoOr
+      MAYA_SITE_URL: https://maya-exe.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build Maya site
+        working-directory: maya-site
+        run: npm run build
+
+      - name: Verify launch files and disclosures
+        working-directory: maya-site
+        run: |
+          test -f dist/index.html
+          test -f dist/tiktok-shop/index.html
+          test -f dist/shop-the-look/ai-picked-makeup/index.html
+          test -f dist/affiliate-disclosure/index.html
+          test -f dist/sitemap.xml
+          grep -q "Maya is a virtual AI creator" dist/affiliate-disclosure/index.html
+          grep -q "Look direction, not a fake product test" dist/shop-the-look/ai-picked-makeup/index.html
+          grep -q "/shop-the-look/ai-picked-makeup/" dist/sitemap.xml
+
+      - name: Deploy only to Maya.exe production
+        working-directory: maya-site
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          test -n "$VERCEL_TOKEN" || { echo "VERCEL_TOKEN secret is not configured"; exit 1; }
+          npx --yes vercel@latest deploy --prod --yes \
+            --token "$VERCEL_TOKEN" \
+            --scope greta1212s-projects \
+            --project "$VERCEL_PROJECT_ID"
+
+      - name: Verify public launch
+        run: |
+          for url in \
+            https://maya-exe.vercel.app/ \
+            https://maya-exe.vercel.app/tiktok-shop/ \
+            https://maya-exe.vercel.app/shop-the-look/ai-picked-makeup/ \
+            https://maya-exe.vercel.app/affiliate-disclosure/ \
+            https://maya-exe.vercel.app/sitemap.xml
+          do
+            code=$(curl -L -sS -o /dev/null -w "%{http_code}" "$url")
+            test "$code" = "200" || { echo "$url returned $code"; exit 1; }
+          done
