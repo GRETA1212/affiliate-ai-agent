@@ -27,4 +27,4 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 
 [tool.vercel]
-entrypoint = "src.affiliate_intel.production_api:app"
+entrypoint = "app:app"
