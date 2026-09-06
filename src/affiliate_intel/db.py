@@ -274,21 +274,34 @@ class Repository:
                 SELECT
                     p.slug,
                     p.name,
-                    COUNT(DISTINCT c.id) AS clicks,
-                    COUNT(DISTINCT v.id) AS conversions,
-                    COALESCE(SUM(DISTINCT cm.amount), 0) AS revenue
+                    COALESCE(click_stats.clicks, 0) AS clicks,
+                    COALESCE(conv_stats.conversions, 0) AS conversions,
+                    COALESCE(comm_stats.revenue, 0) AS revenue
                 FROM affiliate_programs p
-                LEFT JOIN affiliate_links l ON l.program_slug = p.slug
-                LEFT JOIN clicks c ON c.affiliate_link_id = l.id
-                LEFT JOIN conversions v ON v.affiliate_link_id = l.id
-                LEFT JOIN commissions cm ON cm.conversion_id = v.id
-                GROUP BY p.slug, p.name
+                LEFT JOIN (
+                    SELECT l.program_slug, COUNT(c.id) AS clicks
+                    FROM affiliate_links l
+                    LEFT JOIN clicks c ON c.affiliate_link_id = l.id
+                    GROUP BY l.program_slug
+                ) click_stats ON click_stats.program_slug = p.slug
+                LEFT JOIN (
+                    SELECT l.program_slug, COUNT(v.id) AS conversions
+                    FROM affiliate_links l
+                    LEFT JOIN conversions v ON v.affiliate_link_id = l.id
+                    GROUP BY l.program_slug
+                ) conv_stats ON conv_stats.program_slug = p.slug
+                LEFT JOIN (
+                    SELECT program_slug, SUM(amount) AS revenue
+                    FROM commissions
+                    GROUP BY program_slug
+                ) comm_stats ON comm_stats.program_slug = p.slug
                 ORDER BY revenue DESC, clicks DESC
                 """
             ).fetchall()
         result = []
         for row in rows:
             item = dict(row)
+            item["revenue"] = float(item["revenue"])
             item["epc"] = item["revenue"] / item["clicks"] if item["clicks"] else 0.0
             item["conversion_rate"] = item["conversions"] / item["clicks"] if item["clicks"] else 0.0
             result.append(item)
