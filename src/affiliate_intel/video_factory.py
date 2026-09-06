@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -23,6 +25,9 @@ class VideoJob:
 @dataclass(frozen=True)
 class VideoFactoryPlan:
     job: VideoJob
+    musetalk_root: Path
+    config_path: Path
+    musetalk_result: Path
     musetalk_command: list[str]
     ffmpeg_command: list[str]
     missing_tools: list[str]
@@ -38,45 +43,61 @@ def load_video_job(path: str | Path) -> VideoJob:
     return VideoJob(**payload)
 
 
+def _ffmpeg_bin_dir() -> str:
+    ffmpeg = shutil.which("ffmpeg")
+    return str(Path(ffmpeg).resolve().parent) if ffmpeg else ""
+
+
 def build_plan(job: VideoJob, *, musetalk_root: str | Path = "vendor/MuseTalk") -> VideoFactoryPlan:
-    musetalk_root = Path(musetalk_root)
-    avatar = Path(job.avatar_image)
-    audio = Path(job.voice_audio)
-    output = Path(job.output)
-    talking_head = output.with_name(output.stem + "-talking-head.mp4")
+    musetalk_root = Path(musetalk_root).resolve()
+    avatar = Path(job.avatar_image).resolve()
+    audio = Path(job.voice_audio).resolve()
+    output = Path(job.output).resolve()
+    work_dir = output.parent / ".video-factory"
+    config_path = work_dir / f"{output.stem}-musetalk.yaml"
+    result_dir = work_dir / "musetalk-results"
+    musetalk_result = result_dir / "v15" / f"{output.stem}-talking-head.mp4"
 
     missing_inputs = [str(path) for path in (avatar, audio) if not path.exists()]
     missing_tools: list[str] = []
-    if shutil.which("python") is None:
-        missing_tools.append("python")
     if shutil.which("ffmpeg") is None:
         missing_tools.append("ffmpeg")
     if not (musetalk_root / "scripts" / "inference.py").exists():
         missing_tools.append(f"MuseTalk checkout at {musetalk_root}")
+    for required in (
+        musetalk_root / "models" / "musetalkV15" / "unet.pth",
+        musetalk_root / "models" / "musetalkV15" / "musetalk.json",
+    ):
+        if not required.exists():
+            missing_tools.append(f"MuseTalk model file {required}")
 
     musetalk_command = [
-        "python",
-        str(musetalk_root / "scripts" / "inference.py"),
-        "--source_image",
-        str(avatar),
-        "--audio_path",
-        str(audio),
-        "--output_path",
-        str(talking_head),
+        sys.executable,
+        "-m",
+        "scripts.inference",
+        "--inference_config",
+        str(config_path),
+        "--result_dir",
+        str(result_dir),
+        "--unet_model_path",
+        str(musetalk_root / "models" / "musetalkV15" / "unet.pth"),
+        "--unet_config",
+        str(musetalk_root / "models" / "musetalkV15" / "musetalk.json"),
+        "--version",
+        "v15",
+        "--ffmpeg_path",
+        _ffmpeg_bin_dir(),
     ]
 
-    disclosure = job.affiliate_disclosure.replace("'", "’")
     vf = (
         "scale=720:1280:force_original_aspect_ratio=decrease,"
-        "pad=720:1280:(ow-iw)/2:(oh-ih)/2,"
-        f"drawtext=text='{disclosure}':x=(w-text_w)/2:y=h-120:"
-        "fontsize=28:box=1:boxborderw=12"
+        "pad=720:1280:(ow-iw)/2:(oh-ih)/2"
     )
     ffmpeg_command = [
         "ffmpeg",
         "-y",
         "-i",
-        str(talking_head),
+        str(musetalk_result),
         "-vf",
         vf,
         "-c:v",
@@ -90,11 +111,48 @@ def build_plan(job: VideoJob, *, musetalk_root: str | Path = "vendor/MuseTalk") 
 
     return VideoFactoryPlan(
         job=job,
+        musetalk_root=musetalk_root,
+        config_path=config_path,
+        musetalk_result=musetalk_result,
         musetalk_command=musetalk_command,
         ffmpeg_command=ffmpeg_command,
         missing_tools=missing_tools,
         missing_inputs=missing_inputs,
     )
+
+
+def _write_musetalk_config(plan: VideoFactoryPlan) -> None:
+    plan.config_path.parent.mkdir(parents=True, exist_ok=True)
+    avatar = str(Path(plan.job.avatar_image).resolve()).replace("\\", "/")
+    audio = str(Path(plan.job.voice_audio).resolve()).replace("\\", "/")
+    result_name = plan.musetalk_result.name
+    plan.config_path.write_text(
+        "task_0:\n"
+        f'  video_path: "{avatar}"\n'
+        f'  audio_path: "{audio}"\n'
+        f'  result_name: "{result_name}"\n',
+        encoding="utf-8",
+    )
+
+
+def render_video(job: VideoJob, *, musetalk_root: str | Path = "vendor/MuseTalk") -> Path:
+    plan = build_plan(job, musetalk_root=musetalk_root)
+    if not plan.ready:
+        problems = [*plan.missing_tools, *plan.missing_inputs]
+        raise RuntimeError("Video Factory is not ready: " + "; ".join(problems))
+
+    output = Path(job.output).resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    _write_musetalk_config(plan)
+
+    subprocess.run(plan.musetalk_command, cwd=plan.musetalk_root, check=True)
+    if not plan.musetalk_result.exists():
+        raise RuntimeError(f"MuseTalk finished but expected output was not found: {plan.musetalk_result}")
+
+    subprocess.run(plan.ffmpeg_command, check=True)
+    if not output.exists():
+        raise RuntimeError(f"FFmpeg finished but output was not found: {output}")
+    return output
 
 
 def plan_to_dict(plan: VideoFactoryPlan) -> dict[str, Any]:
@@ -103,6 +161,8 @@ def plan_to_dict(plan: VideoFactoryPlan) -> dict[str, Any]:
         "job": asdict(plan.job),
         "missing_tools": plan.missing_tools,
         "missing_inputs": plan.missing_inputs,
+        "config_path": str(plan.config_path),
+        "expected_musetalk_output": str(plan.musetalk_result),
         "steps": [
             {"name": "musetalk", "command": plan.musetalk_command},
             {"name": "compose", "command": plan.ffmpeg_command},
