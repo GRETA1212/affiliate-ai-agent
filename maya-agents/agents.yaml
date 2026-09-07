@@ -105,10 +105,17 @@ agents:
 
   - id: publishing_planner
     name: Publishing Planner
-    goal: "Schedule, adapt, tag, and track every piece of content."
+    goal: "Schedule, adapt, tag, and track every piece of content through the Postiz publishing buffer."
+    transport:
+      provider: postiz
+      api_base_url: "https://api.postiz.com/public/v1"
+      supported_channels: [tiktok, youtube, instagram, instagram-standalone]
+      safe_default_mode: draft
+      public_publish_requires_explicit_confirmation: true
     output_fields:
       - content_id
       - platform
+      - postiz_integration_id
       - planned_date
       - planned_time
       - title_or_caption
@@ -117,9 +124,16 @@ agents:
       - utm_medium
       - utm_campaign
       - utm_content
+      - postiz_post_id
+      - actual_publish_result
     rules:
       - "Reuse the same master creative across TikTok and Shorts when useful, but adapt CTA/link mechanics to each platform."
       - "Never invent a clickable destination where the platform does not support one."
+      - "Use Postiz draft mode until the content, destination and compliance gates are cleared."
+      - "Schedule or publish-now actions require explicit human confirmation in the guarded publisher."
+      - "For Maya TikTok video posts, set Postiz video_made_with_ai=true."
+      - "Keep a visible Virtual AI creator / AI-generated content disclosure in the caption package."
+      - "Do not mark content PUBLISHED until Postiz or the target platform returns a real successful result."
 
   - id: commerce_compliance
     name: Commerce & Compliance
@@ -213,3 +227,4 @@ human_approval_required_for:
   - "KYC/tax/bank/account-owner changes"
   - "publishing a claim with material legal/health risk"
   - "launching paid ads"
+  - "public Postiz schedule or publish-now action"
