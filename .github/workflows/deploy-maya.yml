@@ -44,16 +44,19 @@ jobs:
           grep -q "Look direction, not a fake product test" dist/shop-the-look/ai-picked-makeup/index.html
           grep -q "/shop-the-look/ai-picked-makeup/" dist/sitemap.xml
 
+      - name: Bind Maya project
+        working-directory: maya-site
+        run: |
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+
       - name: Deploy only to Maya.exe production
         working-directory: maya-site
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           test -n "$VERCEL_TOKEN" || { echo "VERCEL_TOKEN secret is not configured"; exit 1; }
-          npx --yes vercel@latest deploy --prod --yes \
-            --token "$VERCEL_TOKEN" \
-            --scope greta1212s-projects \
-            --project "$VERCEL_PROJECT_ID"
+          npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
 
       - name: Verify public launch
         run: |
