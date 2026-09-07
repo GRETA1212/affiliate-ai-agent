@@ -14,7 +14,16 @@ for (const page of pages) {
   const relative = page.path === "/" ? "index.html" : join(page.path.slice(1), "index.html");
   const target = join(dist, relative);
   await mkdir(dirname(target), { recursive: true });
-  await writeFile(target, renderPage(page), "utf8");
+
+  let html = renderPage(page);
+  if (page.path === "/" || page.path === "/videos/") {
+    html = html.replace(
+      '<p class="status">Coming soon</p>',
+      '<p class="status"><a class="text-link" href="/shop-the-look/ai-picked-makeup/">Live · Watch V001 →</a></p>',
+    );
+  }
+
+  await writeFile(target, html, "utf8");
 }
 
 await cp(join(root, "src", "styles.css"), join(dist, "styles.css"));
